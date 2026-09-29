@@ -16,11 +16,14 @@
 
 ## ✨ 特性
 
-- **动态官网 CMS**：Block 可视化编辑器（Hero / Features / Pricing / Testimonials），发布即清 CDN 缓存
+- **动态官网 CMS（v2）**：15 个商业化内容组件（Hero / Features / Pricing / Testimonials / FAQ / Team / Blog List / Video / CTA / Contact 等），Schema 驱动可视化配置引擎——输入框、下拉、颜色、开关、对象、**可编辑表格**，无需写 JSON
+- **主题系统（v2）**：后台一键换肤（预设 3 套主题 + 自定义颜色），CSS 变量注入全站 SSR，保存即全局生效
+- **可视化 Block 编辑器**：三栏布局（组件库 + 属性面板 + 实时预览），桌面/手机 375px 切换，发布即清边缘 CDN 缓存
 - **CRM 闭环**：官网表单 → Turnstile 防刷 → 自动线索入库 → 飞书/企微 Webhook 推送
-- **销售跟进**：客户档案、跟进时间线、商机漏斗看板
+- **销售跟进**：客户档案、跟进时间线、商机漏斗看板、线索 CSV 导出
 - **零运维**：全跑在 Cloudflare Workers / D1 / R2 / KV 上，无服务器
-- **边缘性能**：SSR TTFB < 100ms，R2 无 egress 费
+- **边缘性能**：SSR TTFB < 100ms（命中缓存），R2 无 egress 费
+- **同域 API 代理**：Admin 静态页 + Pages Functions 反向代理 `/api/*`，无跨域、无 CORS 烦恼
 - **开箱即用**：pnpm install 后 5 分钟本地跑起来
 
 ## 🌐 在线体验
@@ -30,7 +33,7 @@
 | 官网 Demo | https://cf-admin-api.itwebmomo.workers.dev |
 | 管理后台 | https://cf-admin-admin.pages.dev |
 
-> Demo 账号：`demo` / `demo123`（只读）
+> 管理账号由部署者配置：`wrangler secret put ADMIN_USERNAME` / `ADMIN_PASSWORD`（本地开发见 `apps/api/.dev.vars`）
 
 ## 🧱 技术栈
 
@@ -71,12 +74,13 @@ wrangler secret put ADMIN_PASSWORD
 wrangler deploy
 ```
 
-Admin 后台：
+Admin 后台（**同域代理**，无需 VITE_API_URL）：
 ```bash
 cd ../admin
-VITE_API_URL=https://your-worker.workers.dev pnpm build
+pnpm build                                  # 构建时不要设 VITE_API_URL，API 走同域 /api/*
 wrangler pages deploy dist --project-name=cf-admin-admin
 ```
+`apps/admin/functions/[[path]].js`（Pages Functions）会自动随部署编译：`/api/*` 请求反向代理到 Worker，其余路径先命中静态资源、再回退 SPA `index.html`，因此管理后台与 API 同域，浏览器无跨域限制。
 
 ## 📁 目录结构
 
@@ -102,9 +106,11 @@ wrangler pages deploy dist --project-name=cf-admin-admin
 - `GET /robots.txt` / `GET /sitemap.xml`
 
 管理（需 Bearer token）：
-- `POST /api/admin/auth/login`
-- `GET/POST /api/admin/pages`
-- `PUT /api/admin/pages/:id/blocks`
+- `POST /api/admin/auth/login`（返回 token）
+- `GET/POST /api/admin/pages` / `PATCH/DELETE /api/admin/pages/:id`
+- `PATCH /api/admin/pages/:id/publish` — 发布并清理边缘缓存
+- `GET/PUT /api/admin/theme` — 主题系统（KV 存储，SSR 注入）
+- `GET/PUT /api/admin/pages/:id/blocks` — 页面 Block 配置（Schema 驱动）
 - `GET /api/admin/leads` / `GET /api/admin/leads/export` (CSV)
 - `POST /api/admin/leads/:id/activities`
 - `POST /api/admin/media/upload`
