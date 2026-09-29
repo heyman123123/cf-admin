@@ -1,9 +1,83 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api, type BlockItem, type BlockDraft } from '../lib/api';
+import { api, type BlockItem } from '../lib/api';
+
+type BlockData = Record<string, any>;
+type Draft = { block_type: string; sort_order: number; content_json: BlockData };
 
 const BLOCK_TYPES = ['hero', 'features', 'testimonials', 'pricing_table', 'rich_text'];
-type Draft = BlockDraft & { _id?: string };
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block text-sm mb-3">
+      <span className="text-gray-500 block mb-1">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const inputCls = 'w-full border rounded px-2 py-1 text-sm';
+
+/** 根据 block_type 渲染结构化表单 */
+function BlockFields({ type, value, onChange }: {
+  type: string;
+  value: BlockData;
+  onChange: (v: BlockData) => void;
+}) {
+  const set = (patch: BlockData) => onChange({ ...value, ...patch });
+
+  switch (type) {
+    case 'hero':
+      return (
+        <>
+          <Field label="主标题"><input className={inputCls} value={value.title ?? ''} onChange={(e) => set({ title: e.target.value })} /></Field>
+          <Field label="副标题"><input className={inputCls} value={value.subtitle ?? ''} onChange={(e) => set({ subtitle: e.target.value })} /></Field>
+          <Field label="按钮文字"><input className={inputCls} value={value.cta?.text ?? ''} onChange={(e) => set({ cta: { ...value.cta, text: e.target.value } })} /></Field>
+          <Field label="按钮链接"><input className={inputCls} value={value.cta?.href ?? ''} onChange={(e) => set({ cta: { ...value.cta, href: e.target.value } })} /></Field>
+        </>
+      );
+    case 'features':
+      return (
+        <>
+          <Field label="标题"><input className={inputCls} value={value.title ?? ''} onChange={(e) => set({ title: e.target.value })} /></Field>
+          <Field label="特性列表 (JSON)">
+            <textarea rows={5} className={inputCls + ' font-mono'} defaultValue={JSON.stringify(value.bullets ?? [], null, 2)}
+              onBlur={(e) => { try { set({ bullets: JSON.parse(e.target.value) }); } catch {} }} />
+          </Field>
+        </>
+      );
+    case 'testimonials':
+      return (
+        <>
+          <Field label="标题"><input className={inputCls} value={value.title ?? ''} onChange={(e) => set({ title: e.target.value })} /></Field>
+          <Field label="评价列表 (JSON)">
+            <textarea rows={5} className={inputCls + ' font-mono'} defaultValue={JSON.stringify(value.testimonials ?? [], null, 2)}
+              onBlur={(e) => { try { set({ testimonials: JSON.parse(e.target.value) }); } catch {} }} />
+          </Field>
+        </>
+      );
+    case 'pricing_table':
+      return (
+        <>
+          <Field label="标题"><input className={inputCls} value={value.title ?? ''} onChange={(e) => set({ title: e.target.value })} /></Field>
+          <Field label="价格方案 (JSON)">
+            <textarea rows={6} className={inputCls + ' font-mono'} defaultValue={JSON.stringify(value.plans ?? [], null, 2)}
+              onBlur={(e) => { try { set({ plans: JSON.parse(e.target.value) }); } catch {} }} />
+          </Field>
+        </>
+      );
+    case 'rich_text':
+    default:
+      return (
+        <>
+          <Field label="标题"><input className={inputCls} value={value.title ?? ''} onChange={(e) => set({ title: e.target.value })} /></Field>
+          <Field label="内容 (HTML)">
+            <textarea rows={6} className={inputCls} value={value.body ?? ''} onChange={(e) => set({ body: e.target.value })} />
+          </Field>
+        </>
+      );
+  }
+}
 
 export default function BlockEditor() {
   const { id } = useParams();
@@ -12,13 +86,29 @@ export default function BlockEditor() {
 
   useEffect(() => {
     api.listBlocks(id!).then((rows: BlockItem[]) => {
-      setBlocks(rows.map((r) => ({ _id: r.id, block_type: r.block_type, sort_order: r.sort_order, content_json: JSON.parse(r.content_json) })));
+      setBlocks(rows.map((r) => ({
+        block_type: r.block_type,
+        sort_order: r.sort_order,
+        content_json: JSON.parse(r.content_json),
+      })));
     });
   }, [id]);
 
-  const update = (idx: number, patch: Partial<Draft>) => {
-    setBlocks((bs) => bs.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
+  const update = (i: number, patch: Partial<Draft>) => {
+    setBlocks((bs) => bs.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
   };
+
+  const move = (i: number, dir: -1 | 1) => {
+    setBlocks((bs) => {
+      const next = [...bs];
+      const [item] = next.splice(i, 1);
+      next.splice(i + dir, 0, item);
+      return next.map((b, idx) => ({ ...b, sort_order: idx }));
+    });
+  };
+
+  const remove = (i: number) => setBlocks((bs) => bs.filter((_, idx) => idx !== i));
+
   const save = async (publish: boolean) => {
     await api.saveBlocks(id!, blocks);
     if (publish) await api.publishPage(id!);
@@ -34,29 +124,28 @@ export default function BlockEditor() {
           <button onClick={() => save(true)} className="px-4 py-2 bg-brand text-white rounded">保存并发布</button>
         </div>
       </div>
+
       <div className="space-y-4">
         {blocks.map((b, i) => (
           <div key={i} className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="flex gap-3 mb-3">
-              <select value={b.block_type} onChange={(e) => update(i, { block_type: e.target.value })} className="border rounded px-2 py-1">
+            <div className="flex gap-2 mb-3 items-center">
+              <select value={b.block_type} onChange={(e) => update(i, { block_type: e.target.value, content_json: {} })}
+                className="border rounded px-2 py-1 text-sm">
                 {BLOCK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
-              <input type="number" value={b.sort_order} onChange={(e) => update(i, { sort_order: Number(e.target.value) })} className="border rounded px-2 py-1 w-20" />
+              <button onClick={() => move(i, -1)} disabled={i === 0} className="px-2 py-1 border rounded text-sm">↑</button>
+              <button onClick={() => move(i, 1)} disabled={i === blocks.length - 1} className="px-2 py-1 border rounded text-sm">↓</button>
+              <button onClick={() => remove(i)} className="px-2 py-1 border rounded text-sm text-red-500 ml-auto">删除</button>
             </div>
-            <textarea
-              value={typeof b.content_json === 'string' ? b.content_json : JSON.stringify(b.content_json, null, 2)}
-              onChange={(e) => { try { update(i, { content_json: JSON.parse(e.target.value) }); } catch {} }}
-              rows={8} className="w-full font-mono text-xs border rounded p-2"
-            />
+            <BlockFields type={b.block_type} value={b.content_json} onChange={(v) => update(i, { content_json: v })} />
           </div>
         ))}
       </div>
-      <button onClick={() => setBlocks((bs) => [...bs, { block_type: 'rich_text', sort_order: bs.length, content_json: { title: '', body: '' } }])} className="mt-4 px-4 py-2 border border-dashed rounded">
+
+      <button onClick={() => setBlocks((bs) => [...bs, { block_type: 'rich_text', sort_order: bs.length, content_json: { title: '', body: '' } }])}
+        className="mt-4 px-4 py-2 border border-dashed rounded">
         + 添加 Block
       </button>
-      <div className="mt-6 text-sm text-gray-500">
-        草稿预览：访问站点路径后追加 <code>?preview=&lt;PREVIEW_TOKEN&gt;</code> 即可绕过缓存查看草稿。
-      </div>
     </div>
   );
 }
