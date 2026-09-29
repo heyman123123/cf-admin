@@ -1,0 +1,14 @@
+{
+  "name": "cf-admin",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "deploy": "pnpm --filter api deploy"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

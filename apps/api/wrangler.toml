@@ -1,0 +1,24 @@
+name = "cf-admin-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 替换为 wrangler d1 create 后输出的 database_id
+[[d1_databases]]
+binding = "DB"
+database_name = "cf-admin-db"
+database_id = "REPLACE_WITH_YOUR_D1_ID"
+migrations_dir = "migrations"
+
+# 替换为你的 R2 bucket
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "cf-admin-assets"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_YOUR_KV_ID"
+
+[vars]
+APP_URL = "https://your-domain.com"
+PREVIEW_TOKEN = "change-me"

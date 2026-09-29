@@ -1,0 +1,4 @@
+# 根 wrangler 配置仅作参考；实际部署见 apps/api/wrangler.toml
+name = "cf-admin"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
