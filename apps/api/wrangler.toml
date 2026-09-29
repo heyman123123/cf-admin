@@ -3,28 +3,30 @@ main = "src/index.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# 替换为 wrangler d1 create 后输出的 database_id
+# ===== 部署前必改 =====
+# 1. wrangler d1 create cf-admin-db   把 database_id 填到下面
 [[d1_databases]]
 binding = "DB"
 database_name = "cf-admin-db"
 database_id = "REPLACE_WITH_YOUR_D1_ID"
 migrations_dir = "migrations"
 
-# 替换为你的 R2 bucket
+# 2. wrangler r2 bucket create cf-admin-assets
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "cf-admin-assets"
 
+# 3. wrangler kv namespace create KV
 [[kv_namespaces]]
 binding = "KV"
 id = "REPLACE_WITH_YOUR_KV_ID"
 
 [vars]
-APP_URL = "https://your-domain.com"
-PREVIEW_TOKEN = "change-me"
-R2_PUBLIC_URL = "https://pub-xxxxx.r2.dev"
+PREVIEW_TOKEN = "change-me-to-a-random-string"
 ADMIN_USERNAME = "admin"
-# 注意：密码与 JWT_SECRET 必须用 wrangler secret put 注入，不要写在这里
-# wrangler secret put ADMIN_PASSWORD
+# APP_URL / R2_PUBLIC_URL 部署后再填
+
+# ===== Secrets（不要写在这个文件）=====
 # wrangler secret put JWT_SECRET
+# wrangler secret put ADMIN_PASSWORD
 # wrangler secret put TURNSTILE_SECRET_KEY
