@@ -9,6 +9,7 @@ import { mediaRoutes } from './routes/media';
 import { statsRoutes } from './routes/stats';
 import { miscRoutes } from './routes/misc';
 import { siteRoutes } from './routes/site';
+import { mailRoutes } from './routes/mail';
 import type { Env, Variables } from './env';
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -31,6 +32,9 @@ app.route('/api/admin/leads', activityRoutes);
 app.route('/api/admin/media', mediaRoutes);
 app.route('/api/admin/stats', statsRoutes);
 app.route('/api/admin', miscRoutes);
+
+// 邮件服务（v3 · MoeMail 对齐）
+app.route('/api/mail', mailRoutes);
 
 // 官网 SSR + robots/sitemap
 app.route('/', siteRoutes);
