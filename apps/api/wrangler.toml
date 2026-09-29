@@ -22,3 +22,9 @@ id = "REPLACE_WITH_YOUR_KV_ID"
 [vars]
 APP_URL = "https://your-domain.com"
 PREVIEW_TOKEN = "change-me"
+R2_PUBLIC_URL = "https://pub-xxxxx.r2.dev"
+ADMIN_USERNAME = "admin"
+# 注意：密码与 JWT_SECRET 必须用 wrangler secret put 注入，不要写在这里
+# wrangler secret put ADMIN_PASSWORD
+# wrangler secret put JWT_SECRET
+# wrangler secret put TURNSTILE_SECRET_KEY

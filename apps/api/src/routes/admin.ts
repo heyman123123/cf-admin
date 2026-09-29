@@ -1,14 +1,15 @@
 import { Hono } from 'hono';
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { leads, pages, pageBlocks } from '@cf-admin/db';
 import { purgeUrl } from '../lib/cache';
-import type { Env } from '../env';
+import { authMiddleware } from '../lib/auth';
+import type { Env, Variables } from '../env';
 
-export const adminRoutes = new Hono<{ Bindings: Env }>();
+export const adminRoutes = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-// TODO: 接入 Cloudflare Access 后，这里再做 JWT + RBAC 细粒度校验
-// adminRoutes.use('*', async (c, next) => { ... });
+// 所有 /api/admin/* 业务路由都需要登录（auth 子路径除外，已在别处挂载）
+adminRoutes.use('*', authMiddleware);
 
 /* ------------------------------ Pages ------------------------------ */
 
@@ -51,11 +52,18 @@ adminRoutes.patch('/pages/:id/publish', async (c) => {
 
   await db.update(pages).set({ isPublished: 1, updatedAt: now }).where(eq(pages.id, id));
 
-  // 主动失效边缘缓存
   const url = new URL(page.slug, c.env.APP_URL).toString();
   await purgeUrl(url);
 
   return c.json({ success: true, purged: url });
+});
+
+adminRoutes.delete('/pages/:id', async (c) => {
+  const db = drizzle(c.env.DB);
+  const [page] = await db.select().from(pages).where(eq(pages.id, c.req.param('id'))).limit(1);
+  await db.delete(pages).where(eq(pages.id, c.req.param('id')));
+  if (page) await purgeUrl(new URL(page.slug, c.env.APP_URL).toString());
+  return c.json({ success: true });
 });
 
 /* ------------------------------ Blocks ------------------------------ */
@@ -70,7 +78,6 @@ adminRoutes.get('/pages/:id/blocks', async (c) => {
 });
 
 adminRoutes.put('/pages/:id/blocks', async (c) => {
-  // 整页覆盖保存 blocks（后台拖拽排序后整体提交）
   const blocks = await c.req.json<
     { block_type: string; sort_order: number; content_json: unknown }[]
   >();
@@ -90,7 +97,6 @@ adminRoutes.put('/pages/:id/blocks', async (c) => {
     });
   }
 
-  // 保存后清缓存
   const [page] = await db.select().from(pages).where(eq(pages.id, pageId)).limit(1);
   if (page) await purgeUrl(new URL(page.slug, c.env.APP_URL).toString());
 
@@ -110,12 +116,33 @@ adminRoutes.get('/leads', async (c) => {
   return c.json(rows);
 });
 
+adminRoutes.get('/leads/:id', async (c) => {
+  const db = drizzle(c.env.DB);
+  const [lead] = await db.select().from(leads).where(eq(leads.id, c.req.param('id'))).limit(1);
+  if (!lead) return c.json({ error: 'not found' }, 404);
+  return c.json(lead);
+});
+
 adminRoutes.patch('/leads/:id', async (c) => {
-  const body = await c.req.json<{ status?: string; assigned_to?: string }>();
+  const body = await c.req.json<{
+    status?: string;
+    assigned_to?: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    company_name?: string;
+    deal_value?: number;
+  }>();
   const db = drizzle(c.env.DB);
   await db
     .update(leads)
     .set({ ...body, updatedAt: Math.floor(Date.now() / 1000) })
     .where(eq(leads.id, c.req.param('id')));
+  return c.json({ success: true });
+});
+
+adminRoutes.delete('/leads/:id', async (c) => {
+  const db = drizzle(c.env.DB);
+  await db.delete(leads).where(eq(leads.id, c.req.param('id')));
   return c.json({ success: true });
 });
