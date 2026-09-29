@@ -7,6 +7,7 @@ import { authRoutes } from './routes/auth';
 import { activityRoutes } from './routes/activities';
 import { mediaRoutes } from './routes/media';
 import { statsRoutes } from './routes/stats';
+import { miscRoutes } from './routes/misc';
 import { siteRoutes } from './routes/site';
 import type { Env, Variables } from './env';
 
@@ -23,19 +24,15 @@ app.use(
 
 app.get('/health', (c) => c.json({ ok: true, ts: Date.now() }));
 
-// 公开
 app.route('/api/public', publicRoutes);
-
-// 登录态（不挂在 adminRoutes 下，因为它内部强制 authMiddleware）
 app.route('/api/admin/auth', authRoutes);
-
-// 受保护业务
 app.route('/api/admin', adminRoutes);
-app.route('/api/admin/leads', activityRoutes); // /:leadId/activities
+app.route('/api/admin/leads', activityRoutes);
 app.route('/api/admin/media', mediaRoutes);
 app.route('/api/admin/stats', statsRoutes);
+app.route('/api/admin', miscRoutes);
 
-// 官网 SSR 兜底
+// 官网 SSR + robots/sitemap
 app.route('/', siteRoutes);
 
 export default app;

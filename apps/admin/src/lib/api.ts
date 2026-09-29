@@ -1,13 +1,26 @@
-/** fetch 封装：credentials: include 自动带 JWT Cookie */
-const BASE = '/api/admin';
+/** fetch 封装：JWT 走 Authorization: Bearer 头 */
+const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/admin`;
+
+const TOKEN_KEY = 'cf_admin_token';
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+export function setToken(t: string) {
+  localStorage.setItem(TOKEN_KEY, t);
+}
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-    credentials: 'include',
-    ...init,
-  });
+  const token = getToken();
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (!(init?.body instanceof FormData)) headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
+
+  const resp = await fetch(BASE + path, { ...init, headers });
   if (resp.status === 401) {
+    clearToken();
     if (!location.pathname.startsWith('/login')) location.href = '/login';
     throw new Error('unauthorized');
   }
@@ -16,9 +29,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  login: (username: string, password: string) =>
-    request<{ success: boolean }>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
-  logout: () => request('/auth/logout', { method: 'POST' }),
+  login: async (username: string, password: string) => {
+    const r = await request<{ success: boolean; username: string; token: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    setToken(r.token);
+    return r;
+  },
+  logout: () => {
+    clearToken();
+    return request('/auth/logout', { method: 'POST' }).catch(() => undefined);
+  },
   me: () => request<{ user: { username: string } }>('/auth/me'),
 
   listPages: () => request<PageItem[]>('/pages'),
@@ -43,9 +65,12 @@ export const api = {
   uploadMedia: (file: File) => {
     const fd = new FormData();
     fd.append('file', file);
-    return fetch(`${BASE}/media/upload`, { method: 'POST', body: fd, credentials: 'include' }).then(
-      (r) => r.json(),
-    ) as Promise<{ key: string; url: string; size: number }>;
+    const token = getToken();
+    return fetch(`${BASE}/media/upload`, {
+      method: 'POST',
+      body: fd,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }).then((r) => r.json()) as Promise<{ key: string; url: string; size: number }>;
   },
   listMedia: () => request<{ key: string; url: string; size: number; uploaded: string }[]>('/media/list'),
 

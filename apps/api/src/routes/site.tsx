@@ -3,7 +3,7 @@
  * 缓存策略：Cache API + 发布时主动失效；?preview=token 跳过缓存
  */
 import { Hono } from 'hono';
-import { renderToString } from 'hono/jsx/streaming';
+import { renderToString } from 'hono/jsx/dom/server';
 import type { Env } from '../env';
 import { BlockRenderer } from '../pages/BlockRenderer';
 import type { Page, PageBlock } from '@cf-admin/db';
@@ -43,6 +43,10 @@ async function buildHtml(c: any, slug: string): Promise<{ html: string; status: 
 <title>${escapeHtml(page.title)}</title>
 <meta name="description" content="${escapeHtml(page.metaDescription ?? '')}" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="${escapeHtml(page.title)}" />
+<meta property="og:description" content="${escapeHtml(page.metaDescription ?? '')}" />
+<meta property="og:type" content="website" />
+<link rel="sitemap" href="/sitemap.xml" />
 <style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;line-height:1.6}</style>
 </head>
 <body>${body}</body>
@@ -50,6 +54,24 @@ async function buildHtml(c: any, slug: string): Promise<{ html: string; status: 
 
   return { html, status: 200 };
 }
+
+/* -------- SEO 静态路由（必须在 /* 之前注册） -------- */
+
+siteRoutes.get('/robots.txt', (c) => {
+  return c.text('User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n');
+});
+
+siteRoutes.get('/sitemap.xml', async (c) => {
+  const pages = await c.env.DB.prepare(
+    `SELECT slug, updated_at FROM pages WHERE is_published = 1`,
+  ).all<{ slug: string; updated_at: number }>();
+  const base = c.env.APP_URL ?? new URL(c.req.url).origin;
+  const urls = (pages.results ?? [])
+    .map((p) => `  <url><loc>${base}${p.slug}</loc><lastmod>${new Date(p.updated_at * 1000).toISOString()}</lastmod></url>`)
+    .join('\n');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
+  return c.text(xml, 200, { 'Content-Type': 'application/xml' });
+});
 
 siteRoutes.get('/*', async (c) => {
   const url = new URL(c.req.url);

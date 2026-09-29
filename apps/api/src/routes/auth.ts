@@ -11,7 +11,7 @@ authRoutes.post('/login', async (c) => {
   }
   const token = await createToken(c.env, body.username!);
   setAuthCookie(c, token);
-  return c.json({ success: true, username: body.username });
+  return c.json({ success: true, username: body.username, token });
 });
 
 authRoutes.post('/logout', (c) => {
