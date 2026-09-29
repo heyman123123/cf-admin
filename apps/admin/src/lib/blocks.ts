@@ -12,6 +12,8 @@
  *  - object     → 分组对象（嵌套字段，折叠展示）
  *  - array      → 对象数组，渲染为可编辑表格（列=字段，行=对象，支持增删/排序）
  *  - json       → 高级：裸 JSON 编辑（兜底）
+ *
+ * v3 新增：字段 group/description 可选；组件级 visual variants（视觉变体）。
  */
 
 export type FieldValue = string | number | boolean | null | undefined;
@@ -19,15 +21,15 @@ export type JsonObject = Record<string, any>;
 
 export interface SelectOption { value: string; label: string }
 
-export interface TextField { type: 'text'; key: string; label: string; placeholder?: string }
-export interface TextareaField { type: 'textarea'; key: string; label: string; rows?: number; placeholder?: string }
-export interface SelectField { type: 'select'; key: string; label: string; options: SelectOption[] }
-export interface ColorField { type: 'color'; key: string; label: string }
-export interface BoolField { type: 'bool'; key: string; label: string }
-export interface NumberField { type: 'number'; key: string; label: string; min?: number; max?: number }
-export interface ObjectField { type: 'object'; key: string; label: string; fields: FieldDef[] }
-export interface ArrayField { type: 'array'; key: string; label: string; fields: FieldDef[]; addLabel?: string; columnWidth?: string }
-export interface JsonField { type: 'json'; key: string; label: string; rows?: number }
+export interface TextField { type: 'text'; key: string; label: string; placeholder?: string; group?: string; description?: string }
+export interface TextareaField { type: 'textarea'; key: string; label: string; rows?: number; placeholder?: string; group?: string; description?: string }
+export interface SelectField { type: 'select'; key: string; label: string; options: SelectOption[]; group?: string; description?: string }
+export interface ColorField { type: 'color'; key: string; label: string; group?: string; description?: string }
+export interface BoolField { type: 'bool'; key: string; label: string; group?: string; description?: string }
+export interface NumberField { type: 'number'; key: string; label: string; min?: number; max?: number; group?: string; description?: string }
+export interface ObjectField { type: 'object'; key: string; label: string; fields: FieldDef[]; group?: string; description?: string }
+export interface ArrayField { type: 'array'; key: string; label: string; fields: FieldDef[]; addLabel?: string; columnWidth?: string; group?: string; description?: string }
+export interface JsonField { type: 'json'; key: string; label: string; rows?: number; group?: string; description?: string }
 
 export type FieldDef =
   | TextField | TextareaField | SelectField | ColorField
@@ -36,14 +38,97 @@ export type FieldDef =
 export interface BlockSchema {
   type: string;
   label: string;
+  /** 组件在组件库的展示名称 */
   group: '布局' | '内容' | '转化' | '媒体' | '基础';
+  /** 默认数据（新建组件时填充） */
   defaults: () => JsonObject;
+  /** 字段定义（驱动表单） */
   fields: FieldDef[];
+}
+
+/** 变体定义：每个组件类型的可选视觉形态（v3 商业化） */
+export type BlockVariant = { value: string; label: string };
+
+/** 变体映射：type → 可选变体（首个为默认） */
+export const VARIANTS: Record<string, BlockVariant[]> = {
+  hero: [
+    { value: 'gradient', label: '渐变光晕' },
+    { value: 'dark', label: '深色星空' },
+    { value: 'light', label: '浅色清爽' },
+    { value: 'image', label: '图片背景' },
+  ],
+  features: [
+    { value: 'icon', label: '图标卡片' },
+    { value: 'number', label: '序号卡片' },
+  ],
+  stats: [
+    { value: 'dark', label: '深色底' },
+    { value: 'light', label: '浅色底' },
+    { value: 'line', label: '分割线' },
+  ],
+  pricing_table: [
+    { value: 'three', label: '三档（推荐居中）' },
+    { value: 'two', label: '两档' },
+    { value: 'four', label: '四档' },
+  ],
+  testimonials: [
+    { value: 'grid', label: '三卡网格' },
+    { value: 'single', label: '单卡大引用' },
+  ],
+  faq: [
+    { value: 'single', label: '单列手风琴' },
+    { value: 'two', label: '双列网格' },
+  ],
+  cta_band: [
+    { value: 'gradient', label: '渐变横幅' },
+    { value: 'dark', label: '深色横幅' },
+    { value: 'image', label: '图片横幅' },
+  ],
+  contact_form: [
+    { value: 'center', label: '居中表单' },
+    { value: 'split', label: '左右分栏' },
+  ],
+  team: [
+    { value: 'four', label: '四列网格' },
+    { value: 'two', label: '两列大卡' },
+  ],
+  blog_list: [
+    { value: 'grid', label: '卡片网格' },
+    { value: 'feature', label: '头条 + 列表' },
+  ],
+  logo_cloud: [
+    { value: 'row', label: '单行排列' },
+    { value: 'grid', label: '网格排列' },
+  ],
+  video_embed: [
+    { value: 'boxed', label: '圆角容器' },
+    { value: 'full', label: '通栏播放' },
+  ],
+  rich_text: [
+    { value: 'center', label: '居中排版' },
+    { value: 'left', label: '左对齐' },
+  ],
+  divider: [
+    { value: 'solid', label: '实线' },
+    { value: 'dashed', label: '虚线' },
+    { value: 'gradient', label: '渐变线' },
+  ],
+  spacer: [],
+};
+
+export function getVariants(type: string): BlockVariant[] {
+  return VARIANTS[type] ?? [];
+}
+
+/** 首个变体作为默认 */
+export function defaultVariant(type: string): string {
+  return getVariants(type)[0]?.value ?? '';
 }
 
 /* ------------------------------------------------------------------ */
 
 export const BLOCK_SCHEMAS: BlockSchema[] = [
+  /* ================= Hero ================= */
   {
     type: 'hero',
     label: 'Hero 首屏横幅',
@@ -82,6 +167,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Logo Cloud ================= */
   {
     type: 'logo_cloud',
     label: 'Logo 客户墙',
@@ -99,6 +185,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Features ================= */
   {
     type: 'features',
     label: '特性展示',
@@ -130,6 +217,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Stats ================= */
   {
     type: 'stats',
     label: '数据统计',
@@ -152,6 +240,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Pricing ================= */
   {
     type: 'pricing_table',
     label: '价格方案',
@@ -182,6 +271,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Testimonials ================= */
   {
     type: 'testimonials',
     label: '客户评价',
@@ -207,6 +297,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= FAQ ================= */
   {
     type: 'faq',
     label: '常见问题',
@@ -230,6 +321,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Team ================= */
   {
     type: 'team',
     label: '团队成员',
@@ -258,6 +350,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Blog List ================= */
   {
     type: 'blog_list',
     label: '文章列表',
@@ -283,6 +376,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Video ================= */
   {
     type: 'video_embed',
     label: '视频展示',
@@ -304,6 +398,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= CTA Band ================= */
   {
     type: 'cta_band',
     label: '行动号召横幅',
@@ -326,6 +421,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Contact Form ================= */
   {
     type: 'contact_form',
     label: '联系表单',
@@ -348,6 +444,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Rich Text ================= */
   {
     type: 'rich_text',
     label: '富文本',
@@ -359,6 +456,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Divider ================= */
   {
     type: 'divider',
     label: '分割线',
@@ -369,6 +467,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     ],
   },
 
+  /* ================= Spacer ================= */
   {
     type: 'spacer',
     label: '空白间距',
@@ -384,8 +483,10 @@ export const SCHEMA_MAP: Record<string, BlockSchema> = Object.fromEntries(
   BLOCK_SCHEMAS.map((s) => [s.type, s]),
 );
 
+/** 组件库分组展示 */
 export const BLOCK_GROUPS = Array.from(new Set(BLOCK_SCHEMAS.map((s) => s.group)));
 
+/** 兼容旧数据：把 { cta: {...} } 映射到 { primaryCta } 等（v1→v2 数据迁移） */
 export function migrateContent(type: string, data: JsonObject): JsonObject {
   if (type === 'hero' && data.cta && !data.primaryCta) {
     return { ...data, primaryCta: data.cta };
