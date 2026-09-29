@@ -34,7 +34,7 @@ export default function LeadDetail() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold">{lead.name}</h1>
-            <div className="text-gray-500 mt-1">{lead.company_name ?? '-'} · {lead.email} · {lead.phone ?? '-'}</div>
+            <div className="text-gray-500 mt-1">{lead.companyName ?? '-'} · {lead.email} · {lead.phone ?? '-'}</div>
             <div className="text-sm text-gray-400 mt-1">来源：{lead.source}</div>
           </div>
           <div className="flex gap-2">
@@ -59,9 +59,9 @@ export default function LeadDetail() {
           <div className="space-y-4">
             {acts.map((a) => (
               <div key={a.id} className="flex gap-3">
-                <div className="w-16 text-xs text-gray-400 pt-0.5">{new Date(a.created_at * 1000).toLocaleDateString()}</div>
+                <div className="w-16 text-xs text-gray-400 pt-0.5">{new Date(a.createdAt * 1000).toLocaleDateString()}</div>
                 <div className="flex-1 border-l-2 border-gray-200 pl-3">
-                  <div className="text-xs text-blue-600">{TYPE_LABEL[a.activity_type]} · {a.created_by}</div>
+                  <div className="text-xs text-blue-600">{TYPE_LABEL[a.activityType]} · {a.createdBy}</div>
                   <div className="text-sm mt-0.5">{a.note}</div>
                 </div>
               </div>

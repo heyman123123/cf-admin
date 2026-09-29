@@ -75,27 +75,33 @@ export const api = {
   listMedia: () => request<{ key: string; url: string; size: number; uploaded: string }[]>('/media/list'),
 
   stats: () => request<{ total: number; new_last_30d: number; by_status: { status: string; c: number }[] }>('/stats/overview'),
+
+  updatePage: (id: string, body: { slug?: string; title?: string; meta_description?: string; is_published?: number }) =>
+    request(`/pages/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  getTheme: () => request<{ theme: Record<string, string>; presets: string[] }>('/theme'),
+  saveTheme: (theme: Record<string, string>) =>
+    request('/theme', { method: 'PUT', body: JSON.stringify({ theme }) }),
 };
 
 export interface PageItem {
   id: string; slug: string; title: string;
-  meta_description?: string | null; is_published: number;
-  created_at: number; updated_at: number;
+  metaDescription?: string | null; isPublished: number;
+  createdAt: number; updatedAt: number;
 }
 export interface BlockItem {
-  id: string; page_id: string; block_type: string;
-  sort_order: number; content_json: string; updated_at: number;
+  id: string; pageId: string; blockType: string;
+  sortOrder: number; contentJson: string; updatedAt: number;
 }
 export type BlockDraft = { block_type: string; sort_order: number; content_json: unknown };
 export interface LeadItem {
   id: string; name: string; email: string;
-  phone?: string | null; company_name?: string | null;
+  phone?: string | null; companyName?: string | null;
   source: string; status: 'new' | 'contacting' | 'qualified' | 'lost' | 'won';
-  deal_value: number; assigned_to?: string | null;
-  created_at: number; updated_at: number;
+  dealValue: number; assignedTo?: string | null;
+  createdAt: number; updatedAt: number;
 }
 export interface ActivityItem {
-  id: string; lead_id: string; created_by: string;
-  activity_type: 'call' | 'email' | 'meeting' | 'note';
-  note: string; next_follow_up?: number | null; created_at: number;
+  id: string; leadId: string; createdBy: string;
+  activityType: 'call' | 'email' | 'meeting' | 'note';
+  note: string; nextFollowUp?: number | null; createdAt: number;
 }

@@ -28,8 +28,8 @@ export default function Pipeline() {
                 {items.map((l) => (
                   <Link key={l.id} to={`/leads/${l.id}`} className="block bg-white p-3 rounded shadow-sm text-sm hover:shadow">
                     <div className="font-medium">{l.name}</div>
-                    <div className="text-gray-400 text-xs">{l.company_name ?? l.email}</div>
-                    {l.deal_value > 0 && <div className="text-green-600 text-xs mt-1">¥{l.deal_value}</div>}
+                    <div className="text-gray-400 text-xs">{l.companyName ?? l.email}</div>
+                    {l.dealValue > 0 && <div className="text-green-600 text-xs mt-1">¥{l.dealValue}</div>}
                   </Link>
                 ))}
               </div>
