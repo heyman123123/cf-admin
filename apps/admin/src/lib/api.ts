@@ -18,7 +18,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (!(init?.body instanceof FormData)) headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
 
-  const resp = await fetch(BASE + path, { ...init, headers });
+  // 以 /api/ 开头的完整路径直接使用（如邮件服务 /api/mail/*），其余拼接 admin BASE
+  const url = path.startsWith('/api/') ? path : BASE + path;
+  const resp = await fetch(url, { ...init, headers });
   if (resp.status === 401) {
     clearToken();
     if (!location.pathname.startsWith('/login')) location.href = '/login';
@@ -81,6 +83,26 @@ export const api = {
   getTheme: () => request<{ theme: Record<string, string>; presets: string[] }>('/theme'),
   saveTheme: (theme: Record<string, string>) =>
     request('/theme', { method: 'PUT', body: JSON.stringify({ theme }) }),
+
+  // 邮件服务（v3 · MoeMail 对齐）
+  mailDomains: () => request<{ domains: string[] }>('/api/mail/domains'),
+  mailAccounts: () => request<{ accounts: MailAccount[] }>('/api/mail/accounts'),
+  mailCreateAccount: (body: { address: string; ttl?: string; role?: string }) =>
+    request<{ account: MailAccount }>('/api/mail/accounts', { method: 'POST', body: JSON.stringify(body) }),
+  mailDeleteAccount: (id: string) =>
+    request(`/api/mail/accounts/${id}`, { method: 'DELETE' }),
+  mailMessages: (address: string, mailbox?: string) =>
+    request<{ messages: MailMessage[] }>(`/api/mail/accounts/${encodeURIComponent(address)}/messages${mailbox ? `?mailbox=${mailbox}` : ''}`),
+  mailMessage: (id: string) =>
+    request<{ message: MailMessage }>(`/api/mail/messages/${id}`),
+  mailMarkRead: (id: string) =>
+    request(`/api/mail/messages/${id}/read`, { method: 'PATCH' }),
+  mailDeleteMessage: (id: string) =>
+    request(`/api/mail/messages/${id}`, { method: 'DELETE' }),
+  mailShare: (id: string) =>
+    request<{ token: string; url: string }>(`/api/mail/messages/${id}/share`, { method: 'POST' }),
+  mailSend: (body: { to: string; subject: string; text?: string; html?: string }) =>
+    request(`/api/mail/send`, { method: 'POST', body: JSON.stringify(body) }),
 };
 
 export interface PageItem {
@@ -104,4 +126,14 @@ export interface ActivityItem {
   id: string; leadId: string; createdBy: string;
   activityType: 'call' | 'email' | 'meeting' | 'note';
   note: string; nextFollowUp?: number | null; createdAt: number;
+}
+export interface MailAccount {
+  id: string; address: string; domain: string;
+  expiresAt?: number | null; role: string;
+  createdAt: number; updatedAt: number;
+}
+export interface MailMessage {
+  id: string; accountId: string; mailbox: 'inbox' | 'sent';
+  subject?: string | null; fromAddr?: string | null; toAddr?: string | null;
+  bodyText?: string | null; bodyHtml?: string | null; readAt?: number | null; createdAt: number;
 }

@@ -8,6 +8,7 @@ import Pages from './pages/Pages';
 import BlockEditor from './pages/BlockEditor';
 import Media from './pages/Media';
 import Theme from './pages/Theme';
+import Mail from './pages/Mail';
 import Login from './pages/Login';
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/pages/:id/blocks" element={<BlockEditor />} />
         <Route path="/media" element={<Media />} />
         <Route path="/theme" element={<Theme />} />
+        <Route path="/mail" element={<Mail />} />
       </Route>
     </Routes>
   );

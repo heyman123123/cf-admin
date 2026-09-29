@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/pages', label: '官网页面' },
   { to: '/media', label: '媒体资产' },
   { to: '/theme', label: '主题设置' },
+  { to: '/mail', label: '邮箱服务' },
 ];
 
 export default function Layout() {
