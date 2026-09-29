@@ -63,3 +63,18 @@ export async function notifyLeadChanged(env: Env, leadId: string): Promise<void>
   const row = await env.DB.prepare(`SELECT * FROM leads WHERE id = ?`).bind(leadId).first();
   if (row) await fireWebhooks(env, 'lead.updated', row);
 }
+
+/* ------------------------------ 主题 (KV) ------------------------------ */
+
+miscRoutes.get('/theme', async (c) => {
+  const raw = await c.env.KV.get('theme:current');
+  let theme: Record<string, string> = {};
+  if (raw) { try { theme = JSON.parse(raw); } catch { /* ignore */ } }
+  return c.json({ theme, presets: ['default', 'dark', 'orange'] });
+});
+
+miscRoutes.put('/theme', async (c) => {
+  const body = await c.req.json<{ theme: Record<string, string> }>();
+  await c.env.KV.put('theme:current', JSON.stringify(body.theme ?? {}));
+  return c.json({ success: true });
+});

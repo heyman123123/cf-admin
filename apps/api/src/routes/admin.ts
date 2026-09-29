@@ -42,6 +42,33 @@ adminRoutes.post('/pages', async (c) => {
   return c.json({ id });
 });
 
+adminRoutes.patch('/pages/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<{
+    slug?: string;
+    title?: string;
+    meta_description?: string;
+    is_published?: number;
+  }>();
+  const db = drizzle(c.env.DB);
+
+  const [page] = await db.select().from(pages).where(eq(pages.id, id)).limit(1);
+  if (!page) return c.json({ error: 'not found' }, 404);
+
+  if (body.slug && body.slug !== page.slug) {
+    const [dup] = await db.select().from(pages).where(eq(pages.slug, body.slug)).limit(1);
+    if (dup) return c.json({ error: `slug 已被页面 ${dup.title} 占用` }, 409);
+  }
+
+  await db.update(pages).set({ ...body, updatedAt: Math.floor(Date.now() / 1000) }).where(eq(pages.id, id));
+
+  const base = c.env.APP_URL ?? new URL(c.req.url).origin;
+  await purgeUrl(new URL(page.slug, base).toString());
+  if (body.slug) await purgeUrl(new URL(body.slug, base).toString());
+
+  return c.json({ success: true });
+});
+
 adminRoutes.patch('/pages/:id/publish', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
@@ -52,7 +79,8 @@ adminRoutes.patch('/pages/:id/publish', async (c) => {
 
   await db.update(pages).set({ isPublished: 1, updatedAt: now }).where(eq(pages.id, id));
 
-  const url = new URL(page.slug, c.env.APP_URL).toString();
+  const base = c.env.APP_URL ?? new URL(c.req.url).origin;
+  const url = new URL(page.slug, base).toString();
   await purgeUrl(url);
 
   return c.json({ success: true, purged: url });
@@ -62,7 +90,10 @@ adminRoutes.delete('/pages/:id', async (c) => {
   const db = drizzle(c.env.DB);
   const [page] = await db.select().from(pages).where(eq(pages.id, c.req.param('id'))).limit(1);
   await db.delete(pages).where(eq(pages.id, c.req.param('id')));
-  if (page) await purgeUrl(new URL(page.slug, c.env.APP_URL).toString());
+  if (page) {
+    const base = c.env.APP_URL ?? new URL(c.req.url).origin;
+    await purgeUrl(new URL(page.slug, base).toString());
+  }
   return c.json({ success: true });
 });
 

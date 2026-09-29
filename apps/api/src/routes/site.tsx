@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { renderToString } from 'hono/jsx/dom/server';
 import type { Env } from '../env';
 import { BlockRenderer } from '../pages/BlockRenderer';
+import { GLOBAL_CSS, buildThemeCss } from '../pages/theme';
 import type { Page, PageBlock } from '@cf-admin/db';
 
 export const siteRoutes = new Hono<{ Bindings: Env }>();
@@ -36,6 +37,12 @@ async function buildHtml(c: any, slug: string): Promise<{ html: string; status: 
 
   const body = blocks.map((b) => renderToString(<BlockRenderer block={b} />)).join('');
 
+  let themeVars: Record<string, string> | null = null;
+  try {
+    const raw = await c.env.KV.get('theme:current');
+    if (raw) themeVars = JSON.parse(raw) as Record<string, string>;
+  } catch { /* 忽略主题读取错误 */ }
+
   const html = `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -47,7 +54,7 @@ async function buildHtml(c: any, slug: string): Promise<{ html: string; status: 
 <meta property="og:description" content="${escapeHtml(page.metaDescription ?? '')}" />
 <meta property="og:type" content="website" />
 <link rel="sitemap" href="/sitemap.xml" />
-<style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;line-height:1.6}</style>
+<style>:root{${buildThemeCss(themeVars)}}${GLOBAL_CSS}</style>
 </head>
 <body>${body}</body>
 </html>`;

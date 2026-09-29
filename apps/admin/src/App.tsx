@@ -7,6 +7,7 @@ import Pipeline from './pages/Pipeline';
 import Pages from './pages/Pages';
 import BlockEditor from './pages/BlockEditor';
 import Media from './pages/Media';
+import Theme from './pages/Theme';
 import Login from './pages/Login';
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/pages" element={<Pages />} />
         <Route path="/pages/:id/blocks" element={<BlockEditor />} />
         <Route path="/media" element={<Media />} />
+        <Route path="/theme" element={<Theme />} />
       </Route>
     </Routes>
   );
