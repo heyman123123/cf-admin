@@ -34,6 +34,11 @@ interface BlockData {
   cta?: { text: string; href: string };
   cta_secondary?: { text: string; href: string };
   height?: 'sm' | 'md' | 'lg';
+  // v3.5 通用样式字段（区块设置 · 样式分组）
+  bgColor?: string;
+  textColor?: string;
+  radius?: number;
+  maxWidth?: number;
 }
 
 function parse(b: PageBlock): BlockData {
@@ -60,11 +65,19 @@ function cols(n?: string | number): string {
   return 'grid grid-3';
 }
 
-/** v3：区块间距（px）注入 section style */
+/** v3.5：通用区块样式注入 section style（间距 + 背景 + CSS 变量） */
 function secStyle(d: BlockData, extra?: Record<string, string>) {
   const style: Record<string, string> = { ...(extra ?? {}) };
   if (d.paddingTop) style['paddingTop'] = `${d.paddingTop}px`;
   if (d.paddingBottom) style['paddingBottom'] = `${d.paddingBottom}px`;
+  if (d.bgColor) style['backgroundColor'] = d.bgColor;
+  // CSS 变量覆盖：文字色、圆角、容器宽度（内部组件统一读取 var）
+  if (d.textColor) {
+    style['--c-text'] = d.textColor;
+    style['--c-text-muted'] = `color-mix(in srgb, ${d.textColor} 72%, transparent)`;
+  }
+  if (d.radius) style['--c-radius'] = `${d.radius}px`;
+  if (d.maxWidth) style['--c-container'] = `${d.maxWidth}px`;
   return Object.keys(style).length ? style : undefined;
 }
 
