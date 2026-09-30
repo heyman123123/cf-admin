@@ -1,6 +1,7 @@
 /**
  * 画布 / 缩略图预览用 CSS（与 API GLOBAL_CSS 对齐，含编辑器选中描边与 Header/Footer 布局）。
  * v3.5：从 BlockEditor.tsx 拆出，供编辑器 iframe 与组件库 hover 缩略图复用。
+ * v3.6：新增 .cf-global 全局布局区块画布标记。
  */
 export const PREVIEW_CSS = `
 :root{--c-primary:#2563eb;--c-primary-hover:#1d4ed8;--c-accent:#7c3aed;--c-bg:#fff;--c-bg-soft:#f8fafc;--c-text:#0f172a;--c-text-muted:#64748b;--c-border:#e2e8f0;--c-radius:16px;--c-shadow:0 4px 12px rgba(15,23,42,.06),0 12px 32px rgba(15,23,42,.08);--c-container:1200px}
@@ -73,4 +74,8 @@ export const PREVIEW_CSS = `
 .cf-block:hover{outline:1.5px dashed rgba(37,99,235,.55);outline-offset:3px}
 .cf-selected{outline:2.5px solid #2563eb;outline-offset:3px;z-index:2}
 .cf-selected::after{content:'选中 · 在右侧编辑';position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:#2563eb;color:#fff;font-size:11px;font-weight:600;letter-spacing:.02em;padding:4px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 12px rgba(37,99,235,.35);z-index:10}
+/* ---- v3.6 全局布局区块（画布内标记，点击切到对应布局编辑） ---- */
+.cf-global{outline:1.5px dashed rgba(124,58,237,.55);outline-offset:3px;cursor:pointer}
+.cf-global:hover{outline-color:rgba(124,58,237,.9)}
+.cf-global::before{content:attr(data-tag);position:absolute;top:8px;right:8px;background:rgba(124,58,237,.92);color:#fff;font-size:10px;font-weight:700;letter-spacing:.03em;padding:3px 10px;border-radius:999px;z-index:10;box-shadow:0 2px 8px rgba(124,58,237,.35);white-space:nowrap;pointer-events:none}
 `;

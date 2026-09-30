@@ -1,8 +1,8 @@
 /**
- * Block 可视化编辑器（v3.5 · Shopify Theme Editor 范式 · 商业化 UI）
+ * Block 可视化编辑器（v3.6 · Shopify Theme Editor 范式 · 商业化 UI）
  * 布局：全局顶栏（编辑器级，跨三栏）+ 左 Layers/全局布局/主题 + 中画布（点选即配） + 右设置面板。
- * v3.5 特性：画布点击选中不跳顶（消息驱动描边 + 滚动保持）、样式分组配置、
- *           全局 Header/Footer 可视化编辑、页面级显隐、版本历史（草稿/线上）、组件库 hover 缩略图。
+ * v3.5 特性：画布点击选中不跳顶、样式分组、全局 Header/Footer、版本历史、组件库缩略图。
+ * v3.6：页面画布渲染全局 Header/Footer（可点击切到布局编辑）；组件库按编辑模式过滤；左栏加宽。
  */
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -123,12 +123,16 @@ export default function BlockEditor() {
     const onMsg = (e: MessageEvent) => {
       if (e.data?.type === 'cf-block-click' && typeof e.data.ix === 'number') {
         setSelected(e.data.ix);
+      } else if (e.data?.type === 'cf-layout-click' && (e.data.part === 'header' || e.data.part === 'footer')) {
+        // v3.6：点击画布中的全局 Header/Footer → 切换到对应布局编辑
+        switchTarget(e.data.part);
       } else if (e.data?.type === 'cf-scroll' && typeof e.data.top === 'number') {
         scrollTopRef.current = e.data.top;
       }
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 选中变化 → 向 iframe 发消息切换描边（不重建 srcDoc，避免跳顶）
@@ -163,7 +167,7 @@ export default function BlockEditor() {
   const openPop = (e: ReactMouseEvent<HTMLButtonElement>, i: number, pos: 'above' | 'below') => {
     e.stopPropagation();
     const r = e.currentTarget.getBoundingClientRect();
-    const leftEdge = document.querySelector<HTMLElement>('.w-80')?.getBoundingClientRect().right;
+    const leftEdge = document.querySelector<HTMLElement>('.editor-left')?.getBoundingClientRect().right;
     const x = (leftEdge ?? r.right) + 10;
     setPop({ i, pos, x, y: Math.max(8, r.top - 12) });
   };
@@ -304,14 +308,22 @@ export default function BlockEditor() {
   };
 
   // 画布 HTML：可见区块按序渲染；选中描边由 iframe 消息切换（不重建）
+  // v3.6：页面模式画布同时渲染全局 Header/Footer（带"全局"标记，点击切到对应布局编辑）
   const previewHtml = useMemo(() => {
     const list = shownBlocks;
     const emptyText = isLayout
       ? `空${layoutPart === 'header' ? '页头' : '页脚'} · 从左侧添加区块`
       : '空页面 · 从左侧添加区块';
-    const body = list
-      .map((b, i) => (hidden.has(i) ? '' : `<div class="cf-block" data-ix="${i}" onclick="event.stopPropagation();parent.postMessage({type:'cf-block-click',ix:${i}},'*')">${renderBlockPreview(b)}</div>`))
+    const layoutOf = (bs: Draft[], part: 'header' | 'footer') => bs
+      .map((b, i) => `<div class="cf-block cf-global" data-tag="全局 · ${part === 'header' ? '页头' : '页脚'}" onclick="event.stopPropagation();parent.postMessage({type:'cf-layout-click',part:'${part}'},'*')">${renderBlockPreview(b)}</div>`)
       .join('');
+    const headerHtml = isLayout ? '' : layoutOf(layoutBlocks.header, 'header');
+    const footerHtml = isLayout ? '' : layoutOf(layoutBlocks.footer, 'footer');
+    const body = headerHtml
+      + list
+        .map((b, i) => (hidden.has(i) ? '' : `<div class="cf-block" data-ix="${i}" onclick="event.stopPropagation();parent.postMessage({type:'cf-block-click',ix:${i}},'*')">${renderBlockPreview(b)}</div>`))
+        .join('')
+      + footerHtml;
     return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${PREVIEW_CSS}:root{${themeCssLine(theme)}}</style></head><body style="margin:0">${body || `<div style="padding:80px;text-align:center;color:#94a3b8">${emptyText}</div>`}<script>
 window.addEventListener('message',function(e){
   if(e.data&&e.data.type==='cf-select'){
@@ -324,15 +336,17 @@ document.addEventListener('scroll',function(){parent.postMessage({type:'cf-scrol
 window.scrollTo(0,${scrollTopRef.current});
 </script></body></html>`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shownBlocks, hidden, theme, isLayout, layoutPart]);
+  }, [shownBlocks, hidden, theme, isLayout, layoutPart, layoutBlocks]);
 
   const cur = shownBlocks[selected];
   const variants = cur ? getVariants(cur.block_type) : [];
+  // v3.6：组件库按编辑模式过滤——页面模式隐藏全局布局组件；布局模式只显示布局+基础组件
+  const libSchemas = BLOCK_SCHEMAS.filter((s) => (isLayout ? s.group === '布局' || s.group === '基础' : s.group !== '布局'));
   const ql = query.trim().toLowerCase();
-  const visibleSchemas = ql ? BLOCK_SCHEMAS.filter((s) => s.label.toLowerCase().includes(ql) || s.type.toLowerCase().includes(ql)) : BLOCK_SCHEMAS;
-  const groupsWithSchemas = ql
-    ? BLOCK_GROUPS.map((g) => ({ g, list: visibleSchemas.filter((s) => s.group === g) })).filter((x) => x.list.length > 0)
-    : BLOCK_GROUPS.map((g) => ({ g, list: BLOCK_SCHEMAS.filter((s) => s.group === g) }));
+  const visibleSchemas = ql ? libSchemas.filter((s) => s.label.toLowerCase().includes(ql) || s.type.toLowerCase().includes(ql)) : libSchemas;
+  const groupsWithSchemas = BLOCK_GROUPS
+    .map((g) => ({ g, list: visibleSchemas.filter((s) => s.group === g) }))
+    .filter((x) => x.list.length > 0);
 
   const deviceWidth = device === 'mobile' ? 375 : device === 'tablet' ? 768 : '100%';
 

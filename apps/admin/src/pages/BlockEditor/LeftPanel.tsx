@@ -1,6 +1,7 @@
 /**
  * 编辑器左栏：Tab 栏 + 「页面区块」「全局布局」两个 tab。
  * v3.5：从 BlockEditor.tsx 拆出（「样式和主题」tab 见 ThemeTab.tsx）。
+ * v3.6：左栏加宽（340px）+ Tab 紧凑化防溢出。
  */
 import { SCHEMA_MAP } from '../../lib/blocks';
 import { metaOf, type Draft } from '../../lib/blockPreview';
@@ -28,29 +29,29 @@ export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, show
 }) {
   const schemaOf = (type: string) => SCHEMA_MAP[type] ?? SCHEMA_MAP.hero;
   return (
-    <div className="w-80 border-r border-slate-200 bg-white flex flex-col min-w-0">
+    <div className="editor-left w-[340px] border-r border-slate-200 bg-white flex flex-col min-w-0 shrink-0">
       {/* Tab 栏 */}
-      <div className="flex border-b border-slate-200 bg-slate-50/80 px-2 pt-2 gap-1">
+      <div className="flex border-b border-slate-200 bg-slate-50/80 px-1.5 pt-1.5 gap-0.5 overflow-x-auto">
         <button
           onClick={() => setTab('blocks')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-[12.5px] font-semibold transition border border-b-0 ${tab === 'blocks' ? 'bg-white text-blue-700 border-slate-200 shadow-[0_-2px_6px_rgba(15,23,42,.04)]' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100'}`}
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-t-lg text-[12px] font-semibold transition border border-b-0 whitespace-nowrap ${tab === 'blocks' ? 'bg-white text-blue-700 border-slate-200 shadow-[0_-2px_6px_rgba(15,23,42,.04)]' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100'}`}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
           页面区块
           {tab === 'blocks' && shownBlocks.length > 0 && <span className="text-[10px] font-bold text-blue-500 bg-blue-50 rounded-full px-1.5 py-px">{shownBlocks.length}</span>}
         </button>
         <button
           onClick={() => setTab('layout')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-[12.5px] font-semibold transition border border-b-0 ${tab === 'layout' ? 'bg-white text-blue-700 border-slate-200 shadow-[0_-2px_6px_rgba(15,23,42,.04)]' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100'}`}
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-t-lg text-[12px] font-semibold transition border border-b-0 whitespace-nowrap ${tab === 'layout' ? 'bg-white text-blue-700 border-slate-200 shadow-[0_-2px_6px_rgba(15,23,42,.04)]' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100'}`}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="18" height="7" x="3" y="14" rx="1"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="18" height="7" x="3" y="14" rx="1"/></svg>
           全局布局
         </button>
         <button
           onClick={() => setTab('theme')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-[12.5px] font-semibold transition border border-b-0 ${tab === 'theme' ? 'bg-white text-blue-700 border-slate-200 shadow-[0_-2px_6px_rgba(15,23,42,.04)]' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100'}`}
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-t-lg text-[12px] font-semibold transition border border-b-0 whitespace-nowrap ${tab === 'theme' ? 'bg-white text-blue-700 border-slate-200 shadow-[0_-2px_6px_rgba(15,23,42,.04)]' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100'}`}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.52-.67 1.67-1.33.17-.66-.08-1.17-.5-1.5-.4-.33-.83-1-.83-1.67a2 2 0 0 1 2-2h3.5c2.9 0 5.16-2.9 3.66-5.9C20.6 7.27 16.6 6 13.5 6c-.5 0-1.5-.5-1.5-1.5S13 2 12 2Z"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.52-.67 1.67-1.33.17-.66-.08-1.17-.5-1.5-.4-.33-.83-1-.83-1.67a2 2 0 0 1 2-2h3.5c2.9 0 5.16-2.9 3.66-5.9C20.6 7.27 16.6 6 13.5 6c-.5 0-1.5-.5-1.5-1.5S13 2 12 2Z"/></svg>
           样式和主题
         </button>
       </div>
