@@ -3,6 +3,7 @@
  * 布局：全局顶栏（编辑器级，跨三栏）+ 左 Layers/全局布局/主题 + 中画布（点选即配） + 右设置面板。
  * v3.5 特性：画布点击选中不跳顶、样式分组、全局 Header/Footer、版本历史、组件库缩略图。
  * v3.6：页面画布渲染全局 Header/Footer（可点击切到布局编辑）；组件库按编辑模式过滤；左栏加宽。
+ * v3.7：显隐勾选即时生效（本地 state 同步，失败回滚）。
  */
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -267,13 +268,20 @@ export default function BlockEditor() {
     }
   };
 
-  // 页面级页头/页脚显隐开关（立即保存）
+  // 页面级页头/页脚显隐开关（立即保存，本地 state 同步更新保证勾选即时生效）
   const savePageFlags = async (header: number, footer: number) => {
+    setShowHeader(header);
+    setShowFooter(footer);
     try {
       await api.updatePage(id!, { show_header: header, show_footer: footer });
       setSaving('saved');
       setTimeout(() => setSaving('idle'), 2000);
-    } catch { /* ignore */ }
+    } catch (e) {
+      // 保存失败回滚勾选
+      setShowHeader(showHeader);
+      setShowFooter(showFooter);
+      alert(String(e));
+    }
   };
 
   // 从历史版本恢复到草稿

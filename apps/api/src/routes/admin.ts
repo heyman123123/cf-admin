@@ -177,15 +177,27 @@ adminRoutes.put('/pages/:id/blocks', async (c) => {
     });
   }
 
-  // 草稿版本快照（供历史回滚）
-  const maxRow = await c.env.DB.prepare(
-    `SELECT COALESCE(MAX(version),0) AS m FROM page_versions WHERE page_id = ?`,
-  ).bind(pageId).first<{ m: number }>();
-  await c.env.DB.prepare(
-    `INSERT INTO page_versions (id, page_id, version, status, blocks_json, created_by, created_at) VALUES (?, ?, ?, 'draft', ?, ?, ?)`,
-  )
-    .bind(crypto.randomUUID(), pageId, (maxRow?.m ?? 0) + 1, JSON.stringify(blocks), c.get('user')?.username ?? null, now)
-    .run();
+  // 草稿版本快照（供历史回滚）：最近一条已是草稿则原地更新（不重复创建）；最近是已发布/无版本才新建
+  const latestRow = await c.env.DB.prepare(
+    `SELECT id, status, version FROM page_versions WHERE page_id = ? ORDER BY version DESC LIMIT 1`,
+  ).bind(pageId).first<{ id: string; status: string; version: number }>();
+  let version = 0;
+  if (latestRow?.status === 'draft') {
+    await c.env.DB.prepare(
+      `UPDATE page_versions SET blocks_json = ?, created_at = ?, created_by = ? WHERE id = ?`,
+    ).bind(JSON.stringify(blocks), now, c.get('user')?.username ?? null, latestRow.id).run();
+    version = latestRow.version;
+  } else {
+    const maxRow = await c.env.DB.prepare(
+      `SELECT COALESCE(MAX(version),0) AS m FROM page_versions WHERE page_id = ?`,
+    ).bind(pageId).first<{ m: number }>();
+    version = (maxRow?.m ?? 0) + 1;
+    await c.env.DB.prepare(
+      `INSERT INTO page_versions (id, page_id, version, status, blocks_json, created_by, created_at) VALUES (?, ?, ?, 'draft', ?, ?, ?)`,
+    )
+      .bind(crypto.randomUUID(), pageId, version, JSON.stringify(blocks), c.get('user')?.username ?? null, now)
+      .run();
+  }
 
   const [page] = await db.select().from(pages).where(eq(pages.id, pageId)).limit(1);
   if (page) {
@@ -193,7 +205,7 @@ adminRoutes.put('/pages/:id/blocks', async (c) => {
     await purgeUrl(new URL(page.slug, base).toString());
   }
 
-  return c.json({ success: true, count: blocks.length, version: (maxRow?.m ?? 0) + 1 });
+  return c.json({ success: true, count: blocks.length, version });
 });
 
 /* ------------------------------ 页面版本历史 ------------------------------ */
@@ -227,15 +239,24 @@ adminRoutes.post('/pages/:id/versions/:vid/restore', async (c) => {
       .bind(crypto.randomUUID(), pageId, b.block_type, b.sort_order ?? 0, JSON.stringify(b.content_json ?? {}), now)
       .run();
   }
-  // 恢复后落一条草稿版本
-  const maxRow = await c.env.DB.prepare(
-    `SELECT COALESCE(MAX(version),0) AS m FROM page_versions WHERE page_id = ?`,
-  ).bind(pageId).first<{ m: number }>();
-  await c.env.DB.prepare(
-    `INSERT INTO page_versions (id, page_id, version, status, blocks_json, created_by, created_at) VALUES (?, ?, ?, 'draft', ?, ?, ?)`,
-  )
-    .bind(crypto.randomUUID(), pageId, (maxRow?.m ?? 0) + 1, JSON.stringify(parsed), c.get('user')?.username ?? null, now)
-    .run();
+  // 恢复后落草稿版本：最近已是草稿则原地更新，否则新建（避免重复草稿行）
+  const latestRow = await c.env.DB.prepare(
+    `SELECT id, status FROM page_versions WHERE page_id = ? ORDER BY version DESC LIMIT 1`,
+  ).bind(pageId).first<{ id: string; status: string }>();
+  if (latestRow?.status === 'draft') {
+    await c.env.DB.prepare(
+      `UPDATE page_versions SET blocks_json = ?, created_at = ?, created_by = ? WHERE id = ?`,
+    ).bind(JSON.stringify(parsed), now, c.get('user')?.username ?? null, latestRow.id).run();
+  } else {
+    const maxRow = await c.env.DB.prepare(
+      `SELECT COALESCE(MAX(version),0) AS m FROM page_versions WHERE page_id = ?`,
+    ).bind(pageId).first<{ m: number }>();
+    await c.env.DB.prepare(
+      `INSERT INTO page_versions (id, page_id, version, status, blocks_json, created_by, created_at) VALUES (?, ?, ?, 'draft', ?, ?, ?)`,
+    )
+      .bind(crypto.randomUUID(), pageId, (maxRow?.m ?? 0) + 1, JSON.stringify(parsed), c.get('user')?.username ?? null, now)
+      .run();
+  }
 
   const [page] = await drizzle(c.env.DB).select().from(pages).where(eq(pages.id, pageId)).limit(1);
   if (page) {
