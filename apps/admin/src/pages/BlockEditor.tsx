@@ -1,3 +1,8 @@
+/**
+ * Block 可视化编辑器（v3 · Shopify Theme Editor 范式 · 商业化 UI）
+ * 布局：深色顶栏(设备/撤销重做/存草稿/发布) + 左 Layers(拖拽/显隐/复制/删除/添加)
+ *       + 中画布(点选即配 iframe，选中描边) + 右设置面板(变体/间距/SchemaForm 分组)
+ */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, type BlockItem } from '../lib/api';
@@ -6,6 +11,27 @@ import { SchemaForm } from '../components/SchemaForm';
 
 type BlockData = Record<string, any>;
 type Draft = { block_type: string; sort_order: number; content_json: BlockData };
+
+/* ================= 区块类型 → 图标/色相 ================= */
+
+const BLOCK_META: Record<string, { icon: string; tint: string }> = {
+  hero: { icon: '🛡️', tint: 'from-blue-500 to-indigo-500' },
+  logo_cloud: { icon: '🏷️', tint: 'from-slate-500 to-gray-600' },
+  features: { icon: '⚡', tint: 'from-amber-500 to-orange-500' },
+  stats: { icon: '📊', tint: 'from-emerald-500 to-teal-500' },
+  pricing_table: { icon: '💳', tint: 'from-violet-500 to-purple-500' },
+  testimonials: { icon: '💬', tint: 'from-pink-500 to-rose-500' },
+  faq: { icon: '❓', tint: 'from-sky-500 to-cyan-500' },
+  cta_band: { icon: '🎯', tint: 'from-red-500 to-orange-500' },
+  contact_form: { icon: '📬', tint: 'from-green-500 to-emerald-500' },
+  team: { icon: '👥', tint: 'from-indigo-500 to-blue-500' },
+  blog_list: { icon: '📰', tint: 'from-cyan-500 to-sky-500' },
+  video_embed: { icon: '🎬', tint: 'from-fuchsia-500 to-pink-500' },
+  rich_text: { icon: '📝', tint: 'from-gray-500 to-slate-500' },
+  divider: { icon: '➖', tint: 'from-gray-400 to-gray-500' },
+  spacer: { icon: '▭', tint: 'from-gray-300 to-gray-400' },
+};
+const metaOf = (type: string) => BLOCK_META[type] ?? { icon: '🧩', tint: 'from-blue-500 to-indigo-500' };
 
 /* ================= 预览渲染（与 API BlockRenderer 对齐，含 v3 变体） ================= */
 
@@ -93,7 +119,7 @@ function renderBlockPreview(b: Draft): string {
   }
 }
 
-/* ================= 预览样式（v3：含全部变体，与 API GLOBAL_CSS 对齐） ================= */
+/* ================= 预览样式（v3：含全部变体 + 编辑器选中描边，与 API GLOBAL_CSS 对齐） ================= */
 
 const PREVIEW_CSS = `
 :root{--c-primary:#2563eb;--c-primary-hover:#1d4ed8;--c-accent:#7c3aed;--c-bg:#fff;--c-bg-soft:#f8fafc;--c-text:#0f172a;--c-text-muted:#64748b;--c-border:#e2e8f0;--c-radius:16px;--c-shadow:0 4px 12px rgba(15,23,42,.06),0 12px 32px rgba(15,23,42,.08);--c-container:1200px}
@@ -117,6 +143,11 @@ const PREVIEW_CSS = `
 .video-wrap{max-width:840px;margin:0 auto;border-radius:20px;overflow:hidden;box-shadow:var(--c-shadow);background:#000}.video-wrap--full{max-width:100%}.video-placeholder{height:400px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#1e293b);color:#94a3b8}
 .divider{border:none;height:1px;background:linear-gradient(90deg,transparent,var(--c-border),transparent)}.divider--dashed{background:none;border-top:1px dashed var(--c-border);height:0}.divider--gradient{background:linear-gradient(90deg,transparent,var(--c-primary),transparent)}.rich-content{max-width:780px;margin:0 auto;font-size:16.5px}.rich-content--center{text-align:center}.rich-content p{margin:0 0 20px;line-height:1.8;color:#334155}
 @media(max-width:900px){.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}.faq-grid-2{grid-template-columns:1fr}.stats--line>div{border-right:none;padding:0}}@media(max-width:640px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}.section{padding:48px 0}.hero{padding:72px 0 56px}.btn-row{flex-direction:column}.btn-row .btn{width:100%}.stats,.stats--line{grid-template-columns:repeat(2,1fr)}.contact-form .field{grid-template-columns:1fr}.contact-form{grid-template-columns:1fr!important}}
+/* ---- 编辑器画布：点选描边 ---- */
+.cf-block{position:relative;cursor:pointer;transition:outline-color .15s, box-shadow .15s}
+.cf-block:hover{outline:1.5px dashed rgba(37,99,235,.55);outline-offset:3px}
+.cf-selected{outline:2.5px solid #2563eb;outline-offset:3px;z-index:2}
+.cf-selected::after{content:'选中 · 在右侧编辑';position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:#2563eb;color:#fff;font-size:11px;font-weight:600;letter-spacing:.02em;padding:4px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 12px rgba(37,99,235,.35);z-index:10}
 `;
 
 /* ================= 撤销/重做钩子 ================= */
@@ -158,6 +189,26 @@ function useHistory<T>(initial: T) {
   return { state, setState, set, undo, redo, canUndo, canRedo };
 }
 
+/* ================= 图标（内联 SVG） ================= */
+
+const Icon = {
+  back: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+  undo: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>,
+  redo: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>,
+  desktop: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="12" x="3" y="4" rx="2"/><path d="M12 16v4M8 20h8"/></svg>,
+  tablet: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M12 18h.01"/></svg>,
+  phone: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect width="10" height="20" x="7" y="2" rx="2.5"/><path d="M11 18h2"/></svg>,
+  eye: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
+  eyeOff: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24M2 2l20 20"/></svg>,
+  copy: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
+  trash: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>,
+  grip: <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg>,
+  up: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>,
+  down: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>,
+  plus: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5v14"/></svg>,
+  check: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>,
+};
+
 /* ================= 编辑器主体 ================= */
 
 export default function BlockEditor() {
@@ -194,6 +245,19 @@ export default function BlockEditor() {
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
   }, []);
+
+  // Ctrl+Z / Ctrl+Shift+Z 快捷键
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undo, redo]);
 
   const schemaOf = (type: string) => SCHEMA_MAP[type] ?? BLOCK_SCHEMAS[0];
 
@@ -278,33 +342,38 @@ export default function BlockEditor() {
     }
   };
 
-  // 画布 HTML：可见区块按序渲染，每个区块可点击选中
+  // 画布 HTML：可见区块按序渲染，选中区块带描边
   const previewHtml = useMemo(() => {
     const body = blocks
-      .map((b, i) => (hidden.has(i) ? '' : `<div data-ix="${i}" onclick="event.stopPropagation();parent.postMessage({type:'cf-block-click',ix:${i}},'*')">${renderBlockPreview(b)}</div>`))
+      .map((b, i) => (hidden.has(i) ? '' : `<div class="cf-block${i === selected ? ' cf-selected' : ''}" data-ix="${i}" onclick="event.stopPropagation();parent.postMessage({type:'cf-block-click',ix:${i}},'*')">${renderBlockPreview(b)}</div>`))
       .join('');
     return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${PREVIEW_CSS}</style></head><body style="margin:0">${body || '<div style="padding:80px;text-align:center;color:#94a3b8">空页面 · 从左侧添加区块</div>'}</body></html>`;
-  }, [blocks, hidden]);
+  }, [blocks, hidden, selected]);
 
   const cur = blocks[selected];
   const variants = cur ? getVariants(cur.block_type) : [];
 
   const deviceWidth = device === 'mobile' ? 375 : device === 'tablet' ? 768 : '100%';
+  const deviceLabel = device === 'mobile' ? '375px' : device === 'tablet' ? '768px' : '自适应';
 
   return (
-    <div className="flex h-screen -m-6">
+    <div className="flex h-screen -m-6 bg-slate-100 overflow-hidden">
       {/* ======== 左：Layers 面板 ======== */}
-      <div className="w-72 border-r bg-gray-50 flex flex-col min-w-0">
-        <div className="px-3 py-3 border-b bg-white">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-bold">页面区块</h3>
-            <span className="text-[10px] text-gray-400">{blocks.length} 个 · 拖拽排序</span>
+      <div className="w-72 border-r border-slate-200 bg-white flex flex-col min-w-0">
+        <div className="px-4 py-3.5 border-b border-slate-200 bg-white">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[13px] font-bold text-slate-800 tracking-tight">页面区块</h3>
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">{blocks.length} 个区块</span>
           </div>
+          <p className="text-[11px] text-slate-400 mt-1">拖拽排序 · 点击选中 · 眼睛显隐</p>
         </div>
-        <div className="flex-1 overflow-auto p-2 space-y-1">
+
+        <div className="flex-1 overflow-auto p-2.5 space-y-1.5">
           {blocks.map((b, i) => {
             const isHidden = hidden.has(i);
             const isDragOver = dragOver === i && dragFrom !== i;
+            const active = i === selected;
+            const meta = metaOf(b.block_type);
             return (
               <div
                 key={i}
@@ -315,39 +384,51 @@ export default function BlockEditor() {
                 onDrop={() => { if (dragFrom !== null) reorder(dragFrom, i); setDragFrom(null); setDragOver(null); }}
                 onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
                 onClick={() => setSelected(i)}
-                className={`group flex items-center gap-1 px-2 py-1.5 rounded text-sm cursor-pointer border transition-all ${isDragOver ? 'border-blue-400 bg-blue-50' : 'border-transparent'} ${i === selected ? 'bg-blue-600 text-white' : 'hover:bg-gray-200'} ${isHidden ? 'opacity-45' : ''}`}
+                className={`group relative flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] cursor-pointer border transition-all duration-150 ${isDragOver ? 'border-blue-400 bg-blue-50 shadow-inner' : active ? 'border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'} ${isHidden ? 'opacity-45' : ''}`}
               >
-                <span className="text-[10px] opacity-60 w-4 shrink-0">{i + 1}</span>
-                <span className="flex-1 truncate">{schemaOf(b.block_type).label}</span>
+                {/* 拖拽手柄 */}
+                <span className={`shrink-0 cursor-grab opacity-40 group-hover:opacity-100 ${active ? 'text-white' : 'text-slate-400'}`} title="拖拽排序">{Icon.grip}</span>
+                {/* 类型图标 */}
+                <span className={`w-7 h-7 rounded-md bg-gradient-to-br ${meta.tint} flex items-center justify-center text-[13px] shrink-0 shadow-sm ${active ? 'ring-1 ring-white/40' : ''}`}>{meta.icon}</span>
+                <span className="flex-1 truncate font-medium">{schemaOf(b.block_type).label}</span>
                 <button
                   title={isHidden ? '显示' : '隐藏'}
                   onClick={(e) => { e.stopPropagation(); toggleHidden(i); }}
-                  className={`text-xs shrink-0 ${i === selected ? 'text-white/80 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}
-                >{isHidden ? '◔' : '◉'}</button>
+                  className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                >{isHidden ? Icon.eyeOff : Icon.eye}</button>
                 <button title="复制" onClick={(e) => { e.stopPropagation(); duplicate(i); }}
-                  className={`text-xs shrink-0 opacity-0 group-hover:opacity-100 ${i === selected ? 'text-white/80' : 'text-gray-400 hover:text-gray-600'}`}>⧉</button>
+                  className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>{Icon.copy}</button>
                 <button title="删除" onClick={(e) => { e.stopPropagation(); remove(i); }}
-                  className={`text-xs shrink-0 opacity-0 group-hover:opacity-100 ${i === selected ? 'text-white/80' : 'text-red-400 hover:text-red-600'}`}>✕</button>
+                  className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>{Icon.trash}</button>
               </div>
             );
           })}
           {blocks.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-6">暂无区块，从下方添加</p>
+            <div className="text-center py-10 px-4">
+              <div className="text-3xl mb-2">🧩</div>
+              <p className="text-xs text-slate-400 leading-relaxed">页面还没有区块<br />从下方组件库添加第一个区块开始搭建</p>
+            </div>
           )}
         </div>
+
         {/* 添加区块 */}
-        <div className="border-t bg-white p-3 max-h-64 overflow-auto">
-          <h4 className="text-[10px] text-gray-400 font-bold mb-2">添加区块</h4>
+        <div className="border-t border-slate-200 bg-slate-50/80 p-3 max-h-[46%] overflow-auto">
+          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">添加区块 · 组件库</h4>
           {BLOCK_GROUPS.map((g) => (
-            <div key={g} className="mb-2">
-              <h5 className="text-[10px] text-gray-400 mb-1">{g}</h5>
-              <div className="flex flex-wrap gap-1">
-                {BLOCK_SCHEMAS.filter((s) => s.group === g).map((s) => (
-                  <button key={s.type} onClick={() => addBlock(s.type)}
-                    className="px-2 py-1 text-[11px] rounded border border-gray-200 hover:border-blue-400 hover:text-blue-600 bg-white text-gray-600 truncate">
-                    + {s.label}
-                  </button>
-                ))}
+            <div key={g} className="mb-3">
+              <h5 className="text-[10px] font-semibold text-slate-400 mb-1.5">{g}</h5>
+              <div className="grid grid-cols-2 gap-1.5">
+                {BLOCK_SCHEMAS.filter((s) => s.group === g).map((s) => {
+                  const m = metaOf(s.type);
+                  return (
+                    <button key={s.type} onClick={() => addBlock(s.type)}
+                      className="group/add flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm hover:-translate-y-px transition-all text-left">
+                      <span className={`w-5 h-5 rounded bg-gradient-to-br ${m.tint} flex items-center justify-center text-[10px] shrink-0`}>{m.icon}</span>
+                      <span className="flex-1 truncate text-[11px] font-medium text-slate-600 group-hover/add:text-blue-700">{s.label}</span>
+                      <span className="text-blue-400 group-hover/add:text-blue-600 shrink-0">{Icon.plus}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -355,101 +436,161 @@ export default function BlockEditor() {
       </div>
 
       {/* ======== 右：设置面板 ======== */}
-      <div className="w-96 border-r p-4 overflow-auto bg-white flex flex-col min-w-0">
-        <div className="flex justify-between items-center mb-3 shrink-0">
-          <h3 className="font-bold text-sm">区块设置</h3>
+      <div className="w-96 border-r border-slate-200 bg-white flex flex-col min-w-0">
+        <div className="px-4 py-3.5 border-b border-slate-200 flex justify-between items-center shrink-0">
+          <h3 className="text-[13px] font-bold text-slate-800 tracking-tight">区块设置</h3>
           {cur && (
             <div className="flex gap-1">
-              <button onClick={() => move(selected, -1)} disabled={selected === 0} className="px-2 py-1 border rounded text-xs disabled:opacity-30" title="上移">↑</button>
-              <button onClick={() => move(selected, 1)} disabled={selected === blocks.length - 1} className="px-2 py-1 border rounded text-xs disabled:opacity-30" title="下移">↓</button>
-              <button onClick={() => duplicate(selected)} disabled={!cur} className="px-2 py-1 border rounded text-xs disabled:opacity-30" title="复制">⧉</button>
-              <button onClick={() => remove(selected)} disabled={!cur} className="px-2 py-1 border rounded text-xs text-red-500 disabled:opacity-30" title="删除">✕</button>
+              <button onClick={() => move(selected, -1)} disabled={selected === 0} title="上移"
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-500 transition">{Icon.up}</button>
+              <button onClick={() => move(selected, 1)} disabled={selected === blocks.length - 1} title="下移"
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-500 transition">{Icon.down}</button>
+              <button onClick={() => duplicate(selected)} disabled={!cur} title="复制"
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-30 transition">{Icon.copy}</button>
+              <button onClick={() => remove(selected)} disabled={!cur} title="删除"
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-red-400 hover:text-red-600 disabled:opacity-30 transition">{Icon.trash}</button>
             </div>
           )}
         </div>
 
-        {cur && (
-          <>
-            {/* 组件类型 */}
-            <div className="mb-3">
-              <span className="text-xs font-medium text-gray-500 block mb-1">组件类型</span>
-              <select
-                value={cur.block_type}
-                onChange={(e) => changeType(selected, e.target.value)}
-                className="w-full border rounded px-2 py-1.5 text-sm"
-              >
-                {BLOCK_SCHEMAS.map((s) => <option key={s.type} value={s.type}>{s.label}</option>)}
-              </select>
-            </div>
-
-            {/* 变体（v3 商业化） */}
-            {variants.length > 0 && (
-              <div className="mb-3">
-                <span className="text-xs font-medium text-gray-500 block mb-1">视觉变体</span>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {variants.map((v) => (
-                    <button key={v.value} onClick={() => update(selected, { content_json: { ...cur.content_json, variant: v.value } })}
-                      className={`px-2 py-1.5 text-[11px] rounded border transition ${(cur.content_json.variant ?? variants[0].value) === v.value ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold' : 'border-gray-200 text-gray-500 hover:border-blue-300'}`}>
-                      {v.label}
-                    </button>
-                  ))}
+        <div className="flex-1 overflow-auto p-4">
+          {cur ? (
+            <>
+              {/* 组件类型 */}
+              <div className="mb-3.5">
+                <span className="text-xs font-medium text-slate-600 block mb-1.5">组件类型</span>
+                <div className="relative">
+                  <select
+                    value={cur.block_type}
+                    onChange={(e) => changeType(selected, e.target.value)}
+                    className="w-full border border-slate-200 rounded-lg bg-white px-2.5 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 appearance-none cursor-pointer"
+                  >
+                    {BLOCK_SCHEMAS.map((s) => <option key={s.type} value={s.type}>{s.label}</option>)}
+                  </select>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">{Icon.down}</span>
                 </div>
               </div>
-            )}
 
-            {/* 区块间距（v3） */}
-            <div className="mb-3 border rounded p-3 bg-gray-50/60">
-              <span className="text-xs font-medium text-gray-500 block mb-2">区块间距</span>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-[11px] text-gray-400 block mb-1">上边距 (px)</span>
-                  <input type="number" className="w-full border rounded px-2 py-1 text-sm" value={cur.content_json.paddingTop ?? ''}
-                    onChange={(e) => update(selected, { content_json: { ...cur.content_json, paddingTop: e.target.value === '' ? undefined : Number(e.target.value) } })} placeholder="默认" />
+              {/* 视觉变体 */}
+              {variants.length > 0 && (
+                <div className="mb-3.5">
+                  <span className="text-xs font-medium text-slate-600 block mb-1.5">视觉变体</span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {variants.map((v) => {
+                      const on = (cur.content_json.variant ?? variants[0].value) === v.value;
+                      return (
+                        <button key={v.value} onClick={() => update(selected, { content_json: { ...cur.content_json, variant: v.value } })}
+                          className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] rounded-lg border transition ${on ? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold ring-1 ring-blue-200' : 'border-slate-200 text-slate-500 hover:border-blue-300 hover:bg-slate-50'}`}>
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${on ? 'bg-blue-500' : 'bg-slate-300'}`} />
+                          <span className="flex-1 truncate text-left">{v.label}</span>
+                          {on && <span className="text-blue-600 shrink-0">{Icon.check}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[11px] text-gray-400 block mb-1">下边距 (px)</span>
-                  <input type="number" className="w-full border rounded px-2 py-1 text-sm" value={cur.content_json.paddingBottom ?? ''}
-                    onChange={(e) => update(selected, { content_json: { ...cur.content_json, paddingBottom: e.target.value === '' ? undefined : Number(e.target.value) } })} placeholder="默认" />
+              )}
+
+              {/* 区块间距 */}
+              <div className="mb-4 border border-slate-200 rounded-xl p-3.5 bg-slate-50/70">
+                <span className="text-xs font-semibold text-slate-700 block mb-2.5">区块间距</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block mb-1">上边距 (px)</span>
+                    <div className="relative">
+                      <input type="number" className="w-full border border-slate-200 rounded-lg bg-white px-2.5 py-2 pr-8 text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                        value={cur.content_json.paddingTop ?? ''}
+                        onChange={(e) => update(selected, { content_json: { ...cur.content_json, paddingTop: e.target.value === '' ? undefined : Number(e.target.value) } })} placeholder="默认" />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none">px</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-400 block mb-1">下边距 (px)</span>
+                    <div className="relative">
+                      <input type="number" className="w-full border border-slate-200 rounded-lg bg-white px-2.5 py-2 pr-8 text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                        value={cur.content_json.paddingBottom ?? ''}
+                        onChange={(e) => update(selected, { content_json: { ...cur.content_json, paddingBottom: e.target.value === '' ? undefined : Number(e.target.value) } })} placeholder="默认" />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none">px</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* 字段表单（分组折叠） */}
-            <SchemaForm
-              grouped
-              fields={schemaOf(cur.block_type).fields}
-              value={cur.content_json}
-              onChange={(v) => update(selected, { content_json: v })}
-            />
-          </>
-        )}
+              {/* 字段表单（分组折叠） */}
+              <SchemaForm
+                grouped
+                fields={schemaOf(cur.block_type).fields}
+                value={cur.content_json}
+                onChange={(v) => update(selected, { content_json: v })}
+              />
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-3xl mb-3">👆</div>
+              <p className="text-xs text-slate-400 leading-relaxed">点击左侧图层或画布中的区块<br />在这里配置它的内容与样式</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ======== 中：画布 ======== */}
-      <div className="flex-1 bg-gray-200 flex flex-col min-w-0">
-        {/* 顶栏 */}
-        <div className="bg-white border-b px-4 py-2 flex items-center justify-between gap-3 shrink-0 flex-wrap">
-          <button onClick={() => nav('/pages')} className="text-sm text-gray-500 hover:text-blue-600">‹ 返回页面</button>
-          <div className="flex items-center gap-1.5">
-            {/* 撤销/重做 */}
-            <button onClick={undo} disabled={!canUndo} title="撤销 (Ctrl+Z)" className="px-2 py-1 border rounded text-xs disabled:opacity-30">↶ 撤销</button>
-            <button onClick={redo} disabled={!canRedo} title="重做" className="px-2 py-1 border rounded text-xs disabled:opacity-30">↷ 重做</button>
-          </div>
-          {/* 设备切换 */}
-          <div className="flex gap-1.5">
-            <button onClick={() => setDevice('desktop')} className={`px-3 py-1 text-xs rounded ${device === 'desktop' ? 'bg-blue-600 text-white' : 'border bg-white'}`}>桌面</button>
-            <button onClick={() => setDevice('tablet')} className={`px-3 py-1 text-xs rounded ${device === 'tablet' ? 'bg-blue-600 text-white' : 'border bg-white'}`}>平板 768</button>
-            <button onClick={() => setDevice('mobile')} className={`px-3 py-1 text-xs rounded ${device === 'mobile' ? 'bg-blue-600 text-white' : 'border bg-white'}`}>手机 375</button>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => save(false)} disabled={saving === 'saving'} className="px-3 py-1 border rounded text-sm bg-white disabled:opacity-50">
-              {saving === 'saving' ? '保存中…' : saving === 'saved' ? '已保存 ✓' : '存草稿'}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* 深色顶栏 */}
+        <div className="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between gap-3 shrink-0 flex-wrap">
+          {/* 左：返回 + 标题 */}
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => nav('/pages')} className="flex items-center gap-1 text-[13px] text-slate-300 hover:text-white transition whitespace-nowrap">
+              {Icon.back}<span>页面</span>
             </button>
-            <button onClick={() => save(true)} disabled={saving === 'saving'} className="px-3 py-1 bg-blue-600 text-white rounded text-sm disabled:opacity-50">发布</button>
+            <span className="h-4 w-px bg-slate-700 shrink-0" />
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[13px] font-semibold text-white truncate">页面编辑器</span>
+              <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${saving === 'saved' ? 'bg-emerald-500/15 text-emerald-400' : saving === 'saving' ? 'bg-amber-500/15 text-amber-400' : 'bg-slate-700/60 text-slate-400'}`}>
+                {saving === 'saved' ? <><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />已保存</>
+                  : saving === 'saving' ? <><span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />保存中</>
+                  : <><span className="w-1.5 h-1.5 rounded-full bg-slate-500" />未保存</>}
+              </span>
+            </div>
+          </div>
+
+          {/* 中：撤销/重做 + 设备切换 */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-0.5">
+              <button onClick={undo} disabled={!canUndo} title="撤销 (Ctrl+Z)"
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-300 transition">{Icon.undo}</button>
+              <button onClick={redo} disabled={!canRedo} title="重做 (Ctrl+Shift+Z)"
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-300 transition">{Icon.redo}</button>
+            </div>
+
+            <div className="flex items-center gap-0.5 bg-slate-800 rounded-lg p-0.5">
+              {([
+                ['desktop', Icon.desktop, '桌面'],
+                ['tablet', Icon.tablet, '平板 768'],
+                ['mobile', Icon.phone, '手机 375'],
+              ] as const).map(([d, ic, tip]) => (
+                <button key={d} onClick={() => setDevice(d)} title={tip}
+                  className={`w-8 h-7 inline-flex items-center justify-center rounded-md transition ${device === d ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}>{ic}</button>
+              ))}
+            </div>
+            <span className="hidden lg:inline text-[10px] text-slate-500 whitespace-nowrap w-12">{deviceLabel}</span>
+          </div>
+
+          {/* 右：保存/发布 */}
+          <div className="flex items-center gap-2">
+            <button onClick={() => save(false)} disabled={saving === 'saving'}
+              className="px-3.5 py-1.5 rounded-lg border border-slate-600 text-[13px] font-medium text-slate-200 hover:border-slate-400 hover:text-white disabled:opacity-50 transition whitespace-nowrap">
+              {saving === 'saving' ? '保存中…' : '存草稿'}
+            </button>
+            <button onClick={() => save(true)} disabled={saving === 'saving'}
+              className="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-600/25 disabled:opacity-50 transition whitespace-nowrap">
+              发布
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 p-4 overflow-auto flex justify-center items-start">
+        {/* 画布区：点阵背景 */}
+        <div className="flex-1 p-4 overflow-auto flex justify-center items-start"
+          style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px', backgroundColor: '#eef2f7' }}>
           <iframe
             title="preview"
             srcDoc={previewHtml}
@@ -457,12 +598,12 @@ export default function BlockEditor() {
               width: deviceWidth,
               maxWidth: '100%',
               height: '100%',
-              minHeight: 480,
+              minHeight: 520,
               border: 'none',
-              borderRadius: 12,
+              borderRadius: 16,
               background: '#fff',
-              boxShadow: '0 4px 24px rgba(15,23,42,.14)',
-              transition: 'width .25s',
+              boxShadow: device === 'mobile' ? '0 0 0 1px #e2e8f0, 0 24px 48px rgba(15,23,42,.18)' : '0 12px 40px rgba(15,23,42,.16)',
+              transition: 'width .3s ease, box-shadow .3s ease',
             }}
           />
         </div>
