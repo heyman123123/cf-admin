@@ -130,6 +130,14 @@ export function getVariants(type: string): BlockVariant[] {
   return VARIANTS[type] ?? [];
 }
 
+/** v3.8：按钮样式选项（数组表格 / 配置面板通用） */
+export const BTN_STYLES = [
+  { value: 'primary', label: '主色实心' },
+  { value: 'ghost', label: '透明描边' },
+  { value: 'outline', label: '白底描边' },
+  { value: 'white', label: '白色实心' },
+];
+
 /** 首个变体作为默认 */
 export function defaultVariant(type: string): string {
   return getVariants(type)[0]?.value ?? '';
@@ -166,6 +174,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
         fields: [
           { type: 'text', key: 'text', label: '按钮文字' },
           { type: 'text', key: 'href', label: '链接' },
+          { type: 'select', key: 'style', label: '按钮样式', options: BTN_STYLES },
         ],
       },
       { type: 'text', key: 'image', label: '背景图 URL（可选）' },
@@ -271,6 +280,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
           { type: 'textarea', key: 'features', label: '功能（每行一个）', rows: 4 },
           { type: 'bool', key: 'featured', label: '推荐（高亮）' },
           { type: 'text', key: 'cta', label: '按钮文字' },
+          { type: 'select', key: 'cta_style', label: '按钮样式', options: BTN_STYLES },
         ],
       },
     ],
@@ -421,6 +431,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
         fields: [
           { type: 'text', key: 'text', label: '按钮文字' },
           { type: 'text', key: 'href', label: '链接' },
+          { type: 'select', key: 'style', label: '按钮样式', options: BTN_STYLES },
         ],
       },
     ],
@@ -515,6 +526,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
         fields: [
           { type: 'text', key: 'text', label: '按钮文字' },
           { type: 'text', key: 'href', label: '链接' },
+          { type: 'select', key: 'style', label: '按钮样式', options: BTN_STYLES },
         ],
       },
       { type: 'bool', key: 'sticky', label: '滚动时固定在顶部' },
