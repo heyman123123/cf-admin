@@ -2,5 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== v4.0 设计令牌（单一事实源见 lib/tokens.ts） ===== */
+:root {
+  --editor-bg: #0d1117;
+  --panel-bg: #11161d;
+  --surface: #1a2029;
+  --surface-hover: #242c38;
+  --surface-active: #2b3648;
+  --border-strong: #33404f;
+  --border-dim: #262e3a;
+  --text-hi: #f1f5f9;
+  --text-mid: #94a3b8;
+  --text-lo: #64748b;
+  --accent: #3b82f6;
+  --accent-hi: #6366f1;
+  --accent-soft: rgba(59, 130, 246, .14);
+  --canvas-bg: #eef2f7;
+  --canvas-grid: rgba(100, 116, 139, .18);
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --card-text: #0f172a;
+  --card-text-muted: #64748b;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+}
+
 html, body, #root { height: 100%; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+/* 深色区滚动条 */
+.dark-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.dark-scroll::-webkit-scrollbar-thumb { background: #2b3648; border-radius: 8px; }
+.dark-scroll::-webkit-scrollbar-thumb:hover { background: #3b4a5f; }
+.dark-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* 亮色区滚动条 */
+.light-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.light-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+.light-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* 深色区通用输入框（搜索等） */
+.dark-input {
+  background: #0b0f14;
+  border: 1px solid var(--border-dim);
+  color: var(--text-hi);
+  border-radius: var(--r-sm);
+  transition: border-color .15s, box-shadow .15s;
+}
+.dark-input::placeholder { color: var(--text-lo); }
+.dark-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
