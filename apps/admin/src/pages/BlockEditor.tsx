@@ -13,7 +13,6 @@ import { PREVIEW_CSS } from '../lib/blockPreviewCss';
 import { useHistory, Icon } from '../lib/editorParts';
 import TopBar, { type VersionRow } from './BlockEditor/TopBar';
 import LeftPanel, { type Tab } from './BlockEditor/LeftPanel';
-import ThemeTab from './BlockEditor/ThemeTab';
 import SettingsPanel from './BlockEditor/SettingsPanel';
 import Canvas from './BlockEditor/Canvas';
 import Overlays from './BlockEditor/Overlays';
@@ -439,17 +438,13 @@ window.scrollTo(0,${scrollTopRef.current});
           showHeader={showHeader}
           showFooter={showFooter}
           savePageFlags={savePageFlags}
+          themePresets={themePresets}
+          theme={theme}
+          setTheme={setTheme}
+          applyPreset={applyPreset}
+          saveTheme={saveTheme}
+          themeSaved={themeSaved}
         />
-        {tab === 'theme' && !isLayout && (
-          <ThemeTab
-            themePresets={themePresets}
-            theme={theme}
-            setTheme={setTheme}
-            applyPreset={applyPreset}
-            saveTheme={saveTheme}
-            themeSaved={themeSaved}
-          />
-        )}
 
         {/* 右：设置面板（order-2 → 视觉最右） */}
         <SettingsPanel
