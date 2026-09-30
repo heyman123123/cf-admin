@@ -2,13 +2,10 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 
 const NAV_ITEMS = [
-  { to: '/dashboard', label: '数据看板' },
-  { to: '/leads', label: '线索 / 客户' },
-  { to: '/pipeline', label: '商机漏斗' },
   { to: '/pages', label: '官网页面' },
   { to: '/media', label: '媒体资产' },
-  { to: '/theme', label: '主题设置' },
   { to: '/mail', label: '邮箱服务' },
+  { to: '/dashboard', label: '数据看板' },
 ];
 
 export default function Layout() {

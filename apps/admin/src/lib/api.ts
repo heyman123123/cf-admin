@@ -54,16 +54,6 @@ export const api = {
   saveBlocks: (pageId: string, blocks: BlockDraft[]) =>
     request(`/pages/${pageId}/blocks`, { method: 'PUT', body: JSON.stringify(blocks) }),
 
-  listLeads: (status?: string) =>
-    request<LeadItem[]>(`/leads${status ? `?status=${status}` : ''}`),
-  getLead: (id: string) => request<LeadItem>(`/leads/${id}`),
-  updateLead: (id: string, body: Record<string, unknown>) =>
-    request(`/leads/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-
-  listActivities: (leadId: string) => request<ActivityItem[]>(`/leads/${leadId}/activities`),
-  addActivity: (leadId: string, body: { activity_type: string; note: string; next_follow_up?: number }) =>
-    request(`/leads/${leadId}/activities`, { method: 'POST', body: JSON.stringify(body) }),
-
   uploadMedia: (file: File) => {
     const fd = new FormData();
     fd.append('file', file);
@@ -80,7 +70,7 @@ export const api = {
 
   updatePage: (id: string, body: { slug?: string; title?: string; meta_description?: string; is_published?: number }) =>
     request(`/pages/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  getTheme: () => request<{ theme: Record<string, string>; presets: string[] }>('/theme'),
+  getTheme: () => request<{ theme: Record<string, string>; presets: { key: string; name: string; vars: Record<string, string> }[] }>('/theme'),
   saveTheme: (theme: Record<string, string>) =>
     request('/theme', { method: 'PUT', body: JSON.stringify({ theme }) }),
 
@@ -115,18 +105,6 @@ export interface BlockItem {
   sortOrder: number; contentJson: string; updatedAt: number;
 }
 export type BlockDraft = { block_type: string; sort_order: number; content_json: unknown };
-export interface LeadItem {
-  id: string; name: string; email: string;
-  phone?: string | null; companyName?: string | null;
-  source: string; status: 'new' | 'contacting' | 'qualified' | 'lost' | 'won';
-  dealValue: number; assignedTo?: string | null;
-  createdAt: number; updatedAt: number;
-}
-export interface ActivityItem {
-  id: string; leadId: string; createdBy: string;
-  activityType: 'call' | 'email' | 'meeting' | 'note';
-  note: string; nextFollowUp?: number | null; createdAt: number;
-}
 export interface MailAccount {
   id: string; address: string; domain: string;
   expiresAt?: number | null; role: string;
