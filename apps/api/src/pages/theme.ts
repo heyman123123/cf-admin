@@ -319,6 +319,52 @@ a:hover { text-decoration: none; }
 }
 .section--dark .rich-content p { color: #cbd5e1; }
 
+/* ===== v3.5 全局 Header / Footer ===== */
+.site-header { position: sticky; top: 0; z-index: 100; background: var(--c-bg, #fff); border-bottom: 1px solid var(--c-border); backdrop-filter: blur(12px); }
+.site-header--overlay { position: absolute; background: transparent; border-bottom-color: transparent; color: #fff; }
+.site-header--overlay .site-nav a { color: rgba(255, 255, 255, 0.85); }
+.site-header--overlay .site-nav a:hover { color: #fff; }
+.site-header--dark { background: #0b1220; border-bottom-color: #1e293b; color: #fff; }
+.site-header--dark .site-nav a { color: #cbd5e1; }
+.site-header--dark .site-nav a:hover { color: #fff; }
+.site-header--dark .site-cta--ghost { border-color: #334155; color: #e2e8f0; }
+.site-header--center .site-header-inner { justify-content: center; }
+.site-header--minimal .site-header-inner { justify-content: space-between; }
+.site-header--minimal .site-nav { display: none; }
+.site-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: var(--c-container); margin: 0 auto; padding: 0 24px; height: 72px; }
+.site-logo { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: inherit; text-decoration: none; }
+.site-logo img { height: 32px; width: auto; }
+.site-nav { display: flex; align-items: center; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.site-nav a { display: block; padding: 9px 14px; border-radius: 8px; font-size: 15px; font-weight: 500; color: var(--c-text); text-decoration: none; transition: color 0.2s, background 0.2s; }
+.site-nav a:hover { color: var(--c-primary); background: rgba(37, 99, 235, 0.06); }
+.site-header-cta { display: flex; align-items: center; gap: 10px; }
+.site-header-cta .btn { padding: 10px 20px; font-size: 14px; border-radius: 9px; }
+.site-cta--ghost { background: transparent; color: inherit; border: 1.5px solid var(--c-border); }
+.site-cta--ghost:hover { border-color: var(--c-primary); color: var(--c-primary); }
+@media (max-width: 768px) { .site-nav { display: none; } .site-header-inner { height: 60px; } }
+.site-footer { background: #0f172a; color: #cbd5e1; padding: 72px 0 32px; }
+.site-footer--light { background: var(--c-bg-soft); color: var(--c-text); }
+.site-footer--light .site-footer-link { color: var(--c-text-muted); }
+.site-footer--light .site-footer-bottom { border-top-color: var(--c-border); color: var(--c-text-muted); }
+.site-footer-inner { max-width: var(--c-container); margin: 0 auto; padding: 0 24px; }
+.site-footer--stack .site-footer-grid { justify-content: center; }
+.site-footer--stack .site-footer-col { text-align: center; }
+.site-footer--stack .site-footer-col .site-footer-links { justify-content: center; }
+.site-footer--minimal .site-footer-grid { display: none; }
+.site-footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; }
+.site-footer-brand { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 12px; }
+.site-footer-desc { font-size: 14px; line-height: 1.8; color: #94a3b8; max-width: 320px; }
+.site-footer-col h4 { color: #fff; font-size: 14px; font-weight: 600; margin: 0 0 14px; }
+.site-footer-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.site-footer-link { font-size: 14px; color: #94a3b8; text-decoration: none; transition: color 0.2s; }
+.site-footer-link:hover { color: #fff; }
+.site-footer-social { display: flex; gap: 10px; margin-top: 18px; }
+.site-footer-social a { width: 36px; height: 36px; border-radius: 9px; background: rgba(255, 255, 255, 0.08); display: inline-flex; align-items: center; justify-content: center; font-size: 15px; color: #cbd5e1; text-decoration: none; transition: background 0.2s, transform 0.2s; }
+.site-footer-social a:hover { background: rgba(37, 99, 235, 0.35); transform: translateY(-2px); }
+.site-footer-bottom { margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 13px; color: #64748b; text-align: center; }
+@media (max-width: 900px) { .site-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; } }
+@media (max-width: 640px) { .site-footer-grid { grid-template-columns: 1fr; } }
+
 /* ===== v3 变体（variant）样式 ===== */
 .hero--dark { background: #0b1220; color: #fff; }
 .hero--dark .lead { color: #94a3b8; }
