@@ -47,49 +47,58 @@ function renderBlockPreview(b: Draft): string {
       const heroBg = v === 'dark' ? 'hero--dark' : v === 'light' ? 'hero--light' : v === 'image' ? 'hero--image' : 'hero--gradient';
       const align = d.align === 'left' ? 'hero--left' : 'hero--center';
       const bgImg = v === 'image' && d.image ? `style="background-image:linear-gradient(rgba(2,6,23,.62),rgba(2,6,23,.72)),url('${esc(d.image)}')"` : '';
+      const ctas = (Array.isArray(d.ctas) ? d.ctas : [d.primaryCta, d.secondaryCta].filter((c: any) => c?.text)).filter((c: any) => c && c.text);
       return `<section class="hero ${heroBg} ${align}" ${bgImg || secStyle()}><div class="container">
         ${d.badge ? `<span class="eyebrow hero-badge">${esc(d.badge)}</span>` : ''}
-        <h1 class="h1">${esc(d.title)}</h1>
+        ${d.title ? `<h1 class="h1">${esc(d.title)}</h1>` : ''}
         ${d.subtitle ? `<p class="lead">${esc(d.subtitle)}</p>` : ''}
-        ${(d.primaryCta || d.secondaryCta) ? `<div class="btn-row">${d.primaryCta ? `<a class="btn btn--primary btn--lg">${esc(d.primaryCta.text)}</a>` : ''}${d.secondaryCta ? `<a class="btn btn--ghost btn--lg">${esc(d.secondaryCta.text)}</a>` : ''}</div>` : ''}
+        ${ctas.length ? `<div class="btn-row">${ctas.map((c: any, i: number) => `<a class="btn ${i === 0 ? 'btn--primary' : 'btn--ghost'} btn--lg">${esc(c.text)}</a>`).join('')}</div>` : ''}
         ${v !== 'image' && d.image ? `<img class="hero-img" src="${esc(d.image)}" style="max-width:800px;margin:48px auto 0">` : ''}
       </div></section>`;
     }
     case 'logo_cloud': {
       const v = d.variant ?? 'row';
-      return `<section class="section" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}<div class="logo-cloud ${v === 'grid' ? 'logo-cloud--grid' : ''}">${(d.logos ?? []).map((l: any) => `<span class="logo-item">${esc(typeof l === 'string' ? l : l.name)}</span>`).join('')}</div></div></section>`;
+      const logos = (d.logos ?? []).filter((l: any) => l && (typeof l === 'string' ? l.trim() : l.name));
+      return `<section class="section" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${logos.length ? `<div class="logo-cloud ${v === 'grid' ? 'logo-cloud--grid' : ''}">${logos.map((l: any) => `<span class="logo-item">${esc(typeof l === 'string' ? l : l.name)}</span>`).join('')}</div>` : ''}</div></section>`;
     }
     case 'features': {
       const v = d.variant ?? 'icon';
-      return `<section class="section section--soft" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead" style="text-align:center">${esc(d.subtitle)}</p>` : ''}<div class="grid grid-3">${(d.bullets ?? []).map((f: any, i: number) => `<div class="card${v === 'number' ? ' card--num' : ''}">${v === 'number' ? `<div class="feature-num">${String(i + 1).padStart(2, '0')}</div>` : f.icon ? `<div class="card--icon">${esc(f.icon)}</div>` : ''}<h3>${esc(f.title)}</h3><p>${esc(f.desc)}</p></div>`).join('')}</div></div></section>`;
+      const bullets = (d.bullets ?? []).filter((f: any) => f && f.title);
+      return `<section class="section section--soft" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead" style="text-align:center">${esc(d.subtitle)}</p>` : ''}${bullets.length ? `<div class="grid grid-3">${bullets.map((f: any, i: number) => `<div class="card${v === 'number' ? ' card--num' : ''}">${v === 'number' ? `<div class="feature-num">${String(i + 1).padStart(2, '0')}</div>` : f.icon ? `<div class="card--icon">${esc(f.icon)}</div>` : ''}<h3>${esc(f.title)}</h3>${f.desc ? `<p>${esc(f.desc)}</p>` : ''}</div>`).join('')}</div>` : ''}</div></section>`;
     }
     case 'stats': {
       const v = d.variant ?? 'dark';
-      return `<section class="section ${v === 'light' ? 'section--soft' : v === 'line' ? '' : 'section--dark'}" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}<div class="stats${v === 'line' ? ' stats--line' : ''}">${(d.stats ?? []).map((s: any) => `<div><div class="stat-num">${esc(s.num)}</div><div class="stat-label">${esc(s.label)}</div></div>`).join('')}</div></div></section>`;
+      const stats = (d.stats ?? []).filter((s: any) => s && s.num);
+      return `<section class="section ${v === 'light' ? 'section--soft' : v === 'line' ? '' : 'section--dark'}" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${stats.length ? `<div class="stats${v === 'line' ? ' stats--line' : ''}">${stats.map((s: any) => `<div><div class="stat-num">${esc(s.num)}</div>${s.label ? `<div class="stat-label">${esc(s.label)}</div>` : ''}</div>`).join('')}</div>` : ''}</div></section>`;
     }
     case 'pricing_table': {
       const v = d.variant ?? 'three';
       const colCls = v === 'two' ? 'grid grid-2' : v === 'four' ? 'grid grid-4' : 'grid grid-3';
-      return `<section class="section" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead" style="text-align:center">${esc(d.subtitle)}</p>` : ''}<div class="${colCls}" style="margin-top:48px;align-items:stretch">${(d.plans ?? []).map((p: any) => {
+      const plans = (d.plans ?? []).filter((p: any) => p && p.name);
+      return `<section class="section" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead" style="text-align:center">${esc(d.subtitle)}</p>` : ''}${plans.length ? `<div class="${colCls}" style="margin-top:48px;align-items:stretch">${plans.map((p: any) => {
         const fl = Array.isArray(p.features) ? p.features : String(p.features ?? '').split('\n').filter(Boolean);
-        return `<div class="pricing-card ${p.featured ? 'pricing-card--featured' : ''}">${p.featured ? `<span class="pricing-tag">最受欢迎</span>` : ''}<div class="pricing-name">${esc(p.name)}</div><div class="pricing-price">${esc(p.price)} <small>${esc(p.period ?? '/月')}</small></div><ul class="pricing-features">${fl.map((f: string) => `<li>${esc(f)}</li>`).join('')}</ul><a class="btn btn--primary">${esc(p.cta ?? '开始使用')}</a></div>`;
-      }).join('')}</div></div></section>`;
+        return `<div class="pricing-card ${p.featured ? 'pricing-card--featured' : ''}">${p.featured ? `<span class="pricing-tag">最受欢迎</span>` : ''}<div class="pricing-name">${esc(p.name)}</div><div class="pricing-price">${esc(p.price)} ${p.period ? `<small>${esc(p.period)}</small>` : ''}</div>${fl.length ? `<ul class="pricing-features">${fl.map((f: string) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}${p.cta ? `<a class="btn btn--primary">${esc(p.cta)}</a>` : ''}</div>`;
+      }).join('')}</div>` : ''}</div></section>`;
     }
     case 'testimonials': {
       const v = d.variant ?? 'grid';
-      return `<section class="section ${v === 'single' ? 'section--soft' : ''}" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}<div class="${v === 'single' ? 'testimonial-single' : 'grid grid-3'}">${(d.testimonials ?? []).map((t: any) => `<div class="testimonial"><div class="testimonial-stars">★★★★★</div><p class="testimonial-quote">"${esc(t.quote)}"</p><div class="testimonial-author"><div class="testimonial-avatar">${esc(t.author?.[0] ?? '?')}</div><div><div class="testimonial-name">${esc(t.author)}</div><div class="testimonial-role">${esc(t.role)}</div></div></div></div>`).join('')}</div></div></section>`;
+      const items = (d.testimonials ?? []).filter((t: any) => t && t.quote);
+      return `<section class="section ${v === 'single' ? 'section--soft' : ''}" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${items.length ? `<div class="${v === 'single' ? 'testimonial-single' : 'grid grid-3'}">${items.map((t: any) => `<div class="testimonial"><div class="testimonial-stars">★★★★★</div><p class="testimonial-quote">"${esc(t.quote)}"</p>${t.author ? `<div class="testimonial-author"><div class="testimonial-avatar">${esc(t.author[0] ?? '?')}</div><div><div class="testimonial-name">${esc(t.author)}</div>${t.role ? `<div class="testimonial-role">${esc(t.role)}</div>` : ''}</div></div>` : ''}</div>`).join('')}</div>` : ''}</div></section>`;
     }
     case 'faq': {
       const v = d.variant ?? 'single';
-      return `<section class="section" ${secStyle()}><div class="container" style="max-width:${v === 'two' ? 1000 : 800}px">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}<div class="${v === 'two' ? 'faq-grid-2' : ''}">${(d.faqs ?? []).map((f: any) => `<details class="faq-item" open><summary class="faq-q">${esc(f.q)} <span>+</span></summary><div class="faq-a">${esc(f.a)}</div></details>`).join('')}</div></div></section>`;
+      const faqs = (d.faqs ?? []).filter((f: any) => f && f.q);
+      return `<section class="section" ${secStyle()}><div class="container" style="max-width:${v === 'two' ? 1000 : 800}px">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${faqs.length ? `<div class="${v === 'two' ? 'faq-grid-2' : ''}">${faqs.map((f: any) => `<details class="faq-item" open><summary class="faq-q">${esc(f.q)} <span>+</span></summary>${f.a ? `<div class="faq-a">${esc(f.a)}</div>` : ''}</details>`).join('')}</div>` : ''}</div></section>`;
     }
     case 'team': {
       const v = d.variant ?? 'four';
-      return `<section class="section section--soft" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead" style="text-align:center">${esc(d.subtitle)}</p>` : ''}<div class="grid ${v === 'two' ? 'grid-2' : 'grid-4'}">${(d.team ?? []).map((t: any) => `<div class="team-card${v === 'two' ? ' team-card--lg' : ''}"><div class="team-avatar">${t.avatar ? `<img src="${esc(t.avatar)}">` : `<span>${esc(t.name?.[0] ?? '?')}</span>`}</div><div class="team-name">${esc(t.name)}</div><div class="team-role">${esc(t.role)}</div>${t.bio ? `<div class="team-bio">${esc(t.bio)}</div>` : ''}</div>`).join('')}</div></div></section>`;
+      const team = (d.team ?? []).filter((t: any) => t && t.name);
+      return `<section class="section section--soft" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead" style="text-align:center">${esc(d.subtitle)}</p>` : ''}${team.length ? `<div class="grid ${v === 'two' ? 'grid-2' : 'grid-4'}">${team.map((t: any) => `<div class="team-card${v === 'two' ? ' team-card--lg' : ''}"><div class="team-avatar">${t.avatar ? `<img src="${esc(t.avatar)}">` : `<span>${esc(t.name[0] ?? '?')}</span>`}</div><div class="team-name">${esc(t.name)}</div>${t.role ? `<div class="team-role">${esc(t.role)}</div>` : ''}${t.bio ? `<div class="team-bio">${esc(t.bio)}</div>` : ''}</div>`).join('')}</div>` : ''}</div></section>`;
     }
     case 'blog_list': {
       const v = d.variant ?? 'grid';
-      return `<section class="section" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}<div class="grid ${v === 'feature' ? 'grid-2' : 'grid-3'}">${(d.posts ?? []).map((p: any, i: number) => `<div class="post-card${v === 'feature' && i === 0 ? ' post-card--feature' : ''}">${p.image ? `<img class="post-img${v === 'feature' && i === 0 ? ' post-img--lg' : ''}" src="${esc(p.image)}">` : `<div class="post-noimg"></div>`}<div class="post-meta">${esc(p.date ?? '')}</div><h3 class="post-title">${esc(p.title)}</h3>${p.excerpt ? `<p class="post-excerpt">${esc(p.excerpt)}</p>` : ''}</div>`).join('')}</div></div></section>`;
+      const posts = (d.posts ?? []).filter((p: any) => p && p.title);
+      return `<section class="section" ${secStyle()}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${posts.length ? `<div class="grid ${v === 'feature' ? 'grid-2' : 'grid-3'}">${posts.map((p: any, i: number) => `<div class="post-card${v === 'feature' && i === 0 ? ' post-card--feature' : ''}">${p.image ? `<img class="post-img${v === 'feature' && i === 0 ? ' post-img--lg' : ''}" src="${esc(p.image)}">` : `<div class="post-noimg"></div>`}${p.date ? `<div class="post-meta">${esc(p.date)}</div>` : ''}<h3 class="post-title">${esc(p.title)}</h3>${p.excerpt ? `<p class="post-excerpt">${esc(p.excerpt)}</p>` : ''}</div>`).join('')}</div>` : ''}</div></section>`;
     }
     case 'video_embed': {
       const v = d.variant ?? 'boxed';
@@ -98,7 +107,8 @@ function renderBlockPreview(b: Draft): string {
     case 'cta_band': {
       const v = d.variant ?? 'gradient';
       const bgImg = v === 'image' && d.image ? `style="background-image:linear-gradient(rgba(2,6,23,.6),rgba(2,6,23,.6)),url('${esc(d.image)}');background-size:cover;background-position:center"` : v === 'dark' ? 'style="background:linear-gradient(135deg,#0f172a,#1e293b)"' : '';
-      return `<section class="section" ${secStyle()}><div class="container"><div class="cta-band${v === 'dark' ? ' cta-band--dark' : ''}" ${bgImg}>${d.cta_icon ? `<div class="cta-icon">${esc(d.cta_icon)}</div>` : ''}<h2 class="h2">${esc(d.title)}</h2>${d.subtitle ? `<p class="lead">${esc(d.subtitle)}</p>` : ''}${d.cta ? `<a class="btn btn--lg">${esc(d.cta.text)}</a>` : ''}</div></div></section>`;
+      const ctas = (Array.isArray(d.ctas) ? d.ctas : d.cta ? [d.cta] : []).filter((c: any) => c && c.text);
+      return `<section class="section" ${secStyle()}><div class="container"><div class="cta-band${v === 'dark' ? ' cta-band--dark' : ''}" ${bgImg}>${d.cta_icon ? `<div class="cta-icon">${esc(d.cta_icon)}</div>` : ''}${d.title ? `<h2 class="h2">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead">${esc(d.subtitle)}</p>` : ''}${ctas.length ? `<div class="btn-row">${ctas.map((c: any) => `<a class="btn btn--lg">${esc(c.text)}</a>`).join('')}</div>` : ''}</div></div></section>`;
     }
     case 'contact_form': {
       const v = d.variant ?? 'center';
@@ -225,6 +235,7 @@ export default function BlockEditor() {
   const [dragOver, setDragOver] = useState<number | null>(null);
   const [layersOpen, setLayersOpen] = useState(true);
   const [query, setQuery] = useState('');
+  const [pop, setPop] = useState<{ i: number; pos: 'above' | 'below' } | null>(null);
 
   useEffect(() => {
     api.listBlocks(id!).then((rows: BlockItem[]) => {
@@ -324,6 +335,18 @@ export default function BlockEditor() {
     setSelected(blocks.length);
   };
 
+  /** 在指定位置插入组件（Popover 使用）：above → 插到 i，below → 插到 i+1 */
+  const addBlockAt = (type: string, target: { i: number; pos: 'above' | 'below' }) => {
+    const schema = SCHEMA_MAP[type];
+    if (!schema) return;
+    const at = Math.max(0, Math.min(target.i + (target.pos === 'above' ? 0 : 1), blocks.length));
+    const block: Draft = { block_type: type, sort_order: at, content_json: { ...schema.defaults(), variant: defaultVariant(type) } };
+    setBlocks((bs) => [...bs.slice(0, at), block, ...bs.slice(at)].map((b, idx) => ({ ...b, sort_order: idx })));
+    setSelected(at);
+    setPop(null);
+    setQuery('');
+  };
+
   const changeType = (i: number, type: string) => {
     const schema = SCHEMA_MAP[type];
     if (!schema) return;
@@ -365,9 +388,8 @@ export default function BlockEditor() {
 
   return (
     <div className="flex h-screen w-full bg-slate-100 overflow-hidden">
-      {/* ======== 左：页面区块（折叠）+ 组件库（主区） ======== */}
+      {/* ======== 左：页面区块 Layers（hover 上/下添加 → Popover 组件库） ======== */}
       <div className="w-80 border-r border-slate-200 bg-white flex flex-col min-w-0">
-        {/* 页面区块 Layers：可折叠 */}
         <div className="px-4 py-3 border-b border-slate-200 bg-white">
           <button type="button" onClick={() => setLayersOpen((o) => !o)} className="w-full flex items-center justify-between group">
             <span className="flex items-center gap-2 text-[13px] font-bold text-slate-800 tracking-tight">
@@ -377,92 +399,133 @@ export default function BlockEditor() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
               className={`text-slate-400 transition-transform duration-200 ${layersOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6" /></svg>
           </button>
-          <p className="text-[11px] text-slate-400 mt-1">拖拽排序 · 点击选中 · 眼睛显隐</p>
+          <p className="text-[11px] text-slate-400 mt-1">拖拽排序 · 点击选中 · hover 添加上/下区块</p>
         </div>
 
+        {/* 组件库 Popover（内联展开） */}
+        {pop && (
+          <div className="relative z-30 border-b border-slate-200 bg-white p-2.5 shadow-[0_8px_24px_rgba(15,23,42,.12)]">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-700">
+                在{pop.pos === 'above' ? '上方' : '下方'}添加组件
+                {pop.i >= blocks.length ? ' · 追加到末尾' : ''}
+              </span>
+              <button onClick={() => { setPop(null); setQuery(''); }} title="关闭"
+                className="w-5 h-5 inline-flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">✕</button>
+            </div>
+            <div className="relative mb-1.5">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="搜索组件…"
+                className="w-full border border-slate-200 rounded-lg bg-slate-50 px-3 py-1.5 pr-8 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+              />
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <div className="max-h-64 overflow-auto grid grid-cols-2 gap-1.5">
+              {groupsWithSchemas.map(({ g, list }) => (
+                <div key={g} className="contents">
+                  {list.map((s) => {
+                    const m = metaOf(s.type);
+                    return (
+                      <button key={s.type} onClick={() => addBlockAt(s.type, pop)}
+                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm hover:-translate-y-px transition-all text-left col-span-2">
+                        <span className={`w-5 h-5 rounded bg-gradient-to-br ${m.tint} flex items-center justify-center text-[10px] shrink-0`}>{m.icon}</span>
+                        <span className="flex-1 truncate text-[11px] font-medium text-slate-600 hover:text-blue-700">{s.label}</span>
+                        <span className="text-blue-400 shrink-0">{Icon.plus}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+              {visibleSchemas.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4 col-span-2">没有匹配「{query}」的组件</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {layersOpen && (
-          <div className="border-b border-slate-200 max-h-[30%] overflow-auto p-2.5 space-y-1.5">
+          <div className="flex-1 overflow-auto p-2.5 space-y-2 min-h-0">
             {blocks.map((b, i) => {
               const isHidden = hidden.has(i);
               const isDragOver = dragOver === i && dragFrom !== i;
               const active = i === selected;
               const meta = metaOf(b.block_type);
               return (
-                <div
-                  key={i}
-                  draggable
-                  onDragStart={() => setDragFrom(i)}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
-                  onDragLeave={() => setDragOver((v) => (v === i ? null : v))}
-                  onDrop={() => { if (dragFrom !== null) reorder(dragFrom, i); setDragFrom(null); setDragOver(null); }}
-                  onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
-                  onClick={() => setSelected(i)}
-                  className={`group relative flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] cursor-pointer border transition-all duration-150 ${isDragOver ? 'border-blue-400 bg-blue-50 shadow-inner' : active ? 'border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'} ${isHidden ? 'opacity-45' : ''}`}
-                >
-                  <span className={`shrink-0 cursor-grab opacity-40 group-hover:opacity-100 ${active ? 'text-white' : 'text-slate-400'}`} title="拖拽排序">{Icon.grip}</span>
-                  <span className={`w-7 h-7 rounded-md bg-gradient-to-br ${meta.tint} flex items-center justify-center text-[13px] shrink-0 shadow-sm ${active ? 'ring-1 ring-white/40' : ''}`}>{meta.icon}</span>
-                  <span className="flex-1 truncate font-medium">{schemaOf(b.block_type).label}</span>
-                  <button title={isHidden ? '显示' : '隐藏'} onClick={(e) => { e.stopPropagation(); toggleHidden(i); }}
-                    className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>{isHidden ? Icon.eyeOff : Icon.eye}</button>
-                  <button title="复制" onClick={(e) => { e.stopPropagation(); duplicate(i); }}
-                    className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>{Icon.copy}</button>
-                  <button title="删除" onClick={(e) => { e.stopPropagation(); remove(i); }}
-                    className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>{Icon.trash}</button>
+                <div key={i}>
+                  {/* 上方添加（hover 浮现） */}
+                  <div className="relative h-0 z-20 -mb-0.5">
+                    <button
+                      title="在上方添加区块"
+                      onClick={(e) => { e.stopPropagation(); setPop({ i, pos: 'above' }); }}
+                      className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-blue-600 text-white shadow-md shadow-blue-600/30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center"
+                      style={{ opacity: undefined }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; }}
+                    ><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
+                  </div>
+
+                  <div
+                    draggable
+                    onDragStart={() => setDragFrom(i)}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+                    onDragLeave={() => setDragOver((v) => (v === i ? null : v))}
+                    onDrop={() => { if (dragFrom !== null) reorder(dragFrom, i); setDragFrom(null); setDragOver(null); }}
+                    onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
+                    onClick={() => setSelected(i)}
+                    className={`group relative flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] cursor-pointer border transition-all duration-150 ${isDragOver ? 'border-blue-400 bg-blue-50 shadow-inner' : active ? 'border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'} ${isHidden ? 'opacity-45' : ''}`}
+                  >
+                    <span className={`shrink-0 cursor-grab opacity-40 group-hover:opacity-100 ${active ? 'text-white' : 'text-slate-400'}`} title="拖拽排序">{Icon.grip}</span>
+                    <span className={`w-7 h-7 rounded-md bg-gradient-to-br ${meta.tint} flex items-center justify-center text-[13px] shrink-0 shadow-sm ${active ? 'ring-1 ring-white/40' : ''}`}>{meta.icon}</span>
+                    <span className="flex-1 truncate font-medium">{schemaOf(b.block_type).label}</span>
+                    <button title={isHidden ? '显示' : '隐藏'} onClick={(e) => { e.stopPropagation(); toggleHidden(i); }}
+                      className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>{isHidden ? Icon.eyeOff : Icon.eye}</button>
+                    <button title="复制" onClick={(e) => { e.stopPropagation(); duplicate(i); }}
+                      className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>{Icon.copy}</button>
+                    <button title="删除" onClick={(e) => { e.stopPropagation(); remove(i); }}
+                      className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>{Icon.trash}</button>
+
+                    {/* 下方添加（hover 浮现） */}
+                    <button
+                      title="在下方添加区块"
+                      onClick={(e) => { e.stopPropagation(); setPop({ i, pos: 'below' }); }}
+                      className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-blue-600 text-white shadow-md shadow-blue-600/30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center"
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; }}
+                    ><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
+                  </div>
                 </div>
               );
             })}
+
+            {/* 末尾添加（追加到末尾） */}
+            {blocks.length > 0 && (
+              <div className="pt-2 border-t border-dashed border-slate-200">
+                <button
+                  onClick={() => setPop({ i: blocks.length, pos: 'below' })}
+                  className="w-full py-2 rounded-lg border border-dashed border-slate-300 text-[12px] font-medium text-slate-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition flex items-center justify-center gap-1.5"
+                ><span className="text-blue-500">{Icon.plus}</span>末尾添加区块</button>
+              </div>
+            )}
+
             {blocks.length === 0 && (
-              <div className="text-center py-6 px-4">
+              <div className="text-center py-10 px-4">
                 <div className="text-2xl mb-1">🧩</div>
-                <p className="text-xs text-slate-400">页面还没有区块，从下方组件库添加</p>
+                <p className="text-xs text-slate-400 mb-3">页面还没有区块</p>
+                <button onClick={() => setPop({ i: 0, pos: 'below' })}
+                  className="px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-600/25 transition">
+                  添加第一个区块
+                </button>
               </div>
             )}
           </div>
         )}
-
-        {/* 组件库（主区） */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="px-3.5 pt-3 pb-2">
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">组件库 · 点击添加</h4>
-            <div className="relative">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索组件…"
-                className="w-full border border-slate-200 rounded-lg bg-slate-50 px-3 py-2 pr-8 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-              />
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            </div>
-          </div>
-          <div className="flex-1 overflow-auto px-3.5 pb-3">
-            {groupsWithSchemas.map(({ g, list }) => (
-              <div key={g} className="mb-3">
-                <h5 className="text-[10px] font-semibold text-slate-400 mb-1.5">{g}</h5>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {list.map((s) => {
-                    const m = metaOf(s.type);
-                    return (
-                      <button key={s.type} onClick={() => addBlock(s.type)}
-                        className="group/add flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm hover:-translate-y-px transition-all text-left">
-                        <span className={`w-5 h-5 rounded bg-gradient-to-br ${m.tint} flex items-center justify-center text-[10px] shrink-0`}>{m.icon}</span>
-                        <span className="flex-1 truncate text-[11px] font-medium text-slate-600 group-hover/add:text-blue-700">{s.label}</span>
-                        <span className="text-blue-400 group-hover/add:text-blue-600 shrink-0">{Icon.plus}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            {visibleSchemas.length === 0 && (
-              <p className="text-xs text-slate-400 text-center py-6">没有匹配「{query}」的组件</p>
-            )}
-          </div>
-        </div>
       </div>
 
-      {/* ======== 右：设置面板 ======== */}
-      <div className="w-96 border-r border-slate-200 bg-white flex flex-col min-w-0">
+      {/* ======== 右：设置面板（order-2 → 视觉最右） ======== */}
+      <div className="w-96 border-r border-slate-200 bg-white flex flex-col min-w-0 order-2">
         <div className="px-4 py-3.5 border-b border-slate-200 flex justify-between items-center shrink-0">
           <h3 className="text-[13px] font-bold text-slate-800 tracking-tight">区块设置</h3>
           {cur && (
@@ -559,8 +622,8 @@ export default function BlockEditor() {
         </div>
       </div>
 
-      {/* ======== 中：画布 ======== */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* ======== 中：画布（order-1 → 视觉中间） ======== */}
+      <div className="flex-1 flex flex-col min-w-0 order-1">
         {/* 深色顶栏 */}
         <div className="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between gap-3 shrink-0 flex-wrap">
           {/* 左：返回 + 标题 */}
