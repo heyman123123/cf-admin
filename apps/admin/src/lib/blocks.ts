@@ -112,6 +112,18 @@ export const VARIANTS: Record<string, BlockVariant[]> = {
     { value: 'gradient', label: '渐变线' },
   ],
   spacer: [],
+  header_nav: [
+    { value: 'split', label: '左右分栏' },
+    { value: 'center', label: '居中布局' },
+    { value: 'minimal', label: '极简单行' },
+    { value: 'overlay', label: '透明悬浮' },
+  ],
+  site_footer: [
+    { value: 'multi', label: '多列导航' },
+    { value: 'stack', label: '居中堆叠' },
+    { value: 'split', label: '左右分栏' },
+    { value: 'minimal', label: '极简单行' },
+  ],
 };
 
 export function getVariants(type: string): BlockVariant[] {
@@ -468,6 +480,83 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     defaults: () => ({ height: 'md' }),
     fields: [
       { type: 'select', key: 'height', label: '高度', options: [{ value: 'sm', label: '小 (24px)' }, { value: 'md', label: '中 (48px)' }, { value: 'lg', label: '大 (96px)' }] },
+    ],
+  },
+
+  /* ================= Header 导航栏（v3.5 · 全局布局） ================= */
+  {
+    type: 'header_nav',
+    label: '导航栏 Header',
+    group: '布局',
+    defaults: () => ({
+      logo: 'LOGO',
+      logoImage: '',
+      links: [
+        { label: '首页', href: '/' },
+        { label: '产品', href: '/#products' },
+        { label: '定价', href: '/#pricing' },
+        { label: '关于', href: '/#about' },
+      ],
+      ctas: [{ text: '联系我们', href: '/#contact' }],
+      sticky: true,
+    }),
+    fields: [
+      { type: 'text', key: 'logo', label: 'Logo 文字' },
+      { type: 'text', key: 'logoImage', label: 'Logo 图片 URL（可选，优先于文字）' },
+      {
+        type: 'array', key: 'links', label: '菜单项', addLabel: '+ 添加菜单',
+        fields: [
+          { type: 'text', key: 'label', label: '菜单文字' },
+          { type: 'text', key: 'href', label: '链接' },
+        ],
+      },
+      {
+        type: 'array', key: 'ctas', label: '按钮列表', addLabel: '+ 添加按钮',
+        fields: [
+          { type: 'text', key: 'text', label: '按钮文字' },
+          { type: 'text', key: 'href', label: '链接' },
+        ],
+      },
+      { type: 'bool', key: 'sticky', label: '滚动时固定在顶部' },
+    ],
+  },
+
+  /* ================= Footer 页脚（v3.5 · 全局布局） ================= */
+  {
+    type: 'site_footer',
+    label: '页脚 Footer',
+    group: '布局',
+    defaults: () => ({
+      logo: 'cf-admin',
+      description: '基于 Cloudflare 全栈的动态官网 + CRM 一体化开源系统。',
+      columns: [
+        { heading: '产品', links_text: '动态官网|#\nCRM 客户管理|#' },
+        { heading: '资源', links_text: '文档|#\n开源仓库|#' },
+      ],
+      socials: [
+        { icon: '𝕏', href: '#' },
+        { icon: '🐙', href: '#' },
+      ],
+      bottomText: '© 2026 cf-admin · Cloudflare 全栈开源',
+    }),
+    fields: [
+      { type: 'text', key: 'logo', label: '品牌名' },
+      { type: 'textarea', key: 'description', label: '介绍文字', rows: 2 },
+      {
+        type: 'array', key: 'columns', label: '导航列', addLabel: '+ 添加列',
+        fields: [
+          { type: 'text', key: 'heading', label: '列标题' },
+          { type: 'textarea', key: 'links_text', label: '链接（每行一条：文字|链接）', rows: 3 },
+        ],
+      },
+      {
+        type: 'array', key: 'socials', label: '社交图标', addLabel: '+ 添加图标',
+        fields: [
+          { type: 'text', key: 'icon', label: '图标（emoji/字符）' },
+          { type: 'text', key: 'href', label: '链接' },
+        ],
+      },
+      { type: 'text', key: 'bottomText', label: '版权行文字' },
     ],
   },
 ];
