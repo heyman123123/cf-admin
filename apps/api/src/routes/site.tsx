@@ -46,14 +46,17 @@ async function buildHtml(c: any, slug: string): Promise<{ html: string; status: 
     try { layoutMap.set(row.id, JSON.parse(row.blocks_json)); } catch { layoutMap.set(row.id, []); }
   }
 
-  const toBlock = (b: any): PageBlock => ({
+  const toBlock = (b: any) => ({
     id: '',
     pageId: '',
-    blockType: b.block_type,
+    // v4.0 修复：BlockRenderer 读取 block.block_type / block.content_json（snake_case）。
+    // 此前误用 blockType/contentJson（camelCase）→ 全局 Header/Footer 分支不匹配、
+    // 内容解析为空，导致线上/预览缺失页头页脚而画布正常（画布走前端本地渲染）。
+    block_type: b.block_type,
     sortOrder: b.sort_order ?? 0,
-    contentJson: JSON.stringify(b.content_json ?? {}),
+    content_json: JSON.stringify(b.content_json ?? {}),
     updatedAt: 0,
-  });
+  }) as unknown as PageBlock;
 
   const headerHtml = showHeader
     ? (layoutMap.get('header') ?? []).map((b: any) => renderToString(<BlockRenderer block={toBlock(b)} />)).join('')

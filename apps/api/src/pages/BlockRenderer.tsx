@@ -3,6 +3,7 @@
  * 数据字段与后台 schema（apps/admin/src/lib/blocks.ts）保持一致。
  * v3 新增：variant 变体渲染 + paddingTop/paddingBottom 区块间距。
  * 兼容旧数据：cta → primaryCta，cta_secondary → secondaryCta。
+ * v4.0：兼容 snake_case/camelCase 双字段名（P0 修复）。
  */
 import type { PageBlock } from '@cf-admin/db';
 
@@ -40,11 +41,24 @@ interface BlockData {
   textColor?: string;
   radius?: number;
   maxWidth?: number;
+  // v3.5 全局布局字段（header_nav / site_footer，v4.0 补齐类型；columns 语义冲突时用 as any）
+  logo?: string;
+  logoImage?: string;
+  links?: { label: string; href: string }[];
+  sticky?: boolean;
+  leftTitle?: string;
+  leftText?: string;
+  cta_icon?: string;
+  socials?: { icon?: string; href: string }[];
+  description?: string;
+  bottomText?: string;
 }
 
 function parse(b: PageBlock): BlockData {
   let d: BlockData = {};
-  try { d = JSON.parse(b.content_json) as BlockData; } catch { /* ignore */ }
+  // v4.0 修复：兼容 snake_case（D1 原生 / site.tsx toBlock）与 camelCase（PageBlock 类型）两种字段名
+  const raw = (b as any).content_json ?? (b as any).contentJson;
+  try { d = JSON.parse(raw) as BlockData; } catch { /* ignore */ }
   // v3.3：按钮数组化兼容迁移（旧 primaryCta/secondaryCta/cta → ctas）
   if (!Array.isArray(d.ctas)) {
     const old = [d.primaryCta ?? d.cta, d.secondaryCta ?? d.cta_secondary].filter((c) => c && typeof c === 'object' && c.text);
@@ -94,8 +108,10 @@ function secStyle(d: BlockData, extra?: Record<string, string>) {
 
 export function BlockRenderer({ block }: { block: PageBlock }) {
   const d = parse(block);
+  // v4.0 修复：运行时统一取 snake_case（D1 原生 / site.tsx toBlock），兼容 camelCase（PageBlock 类型）
+  const btype = (block as any).block_type ?? (block as any).blockType ?? '';
 
-  switch (block.block_type) {
+  switch (btype) {
     case 'hero': {
       const v = d.variant ?? 'gradient';
       const heroBg = v === 'dark' ? 'hero--dark' : v === 'light' ? 'hero--light' : v === 'image' ? 'hero--image' : 'hero--gradient';
@@ -440,7 +456,8 @@ export function BlockRenderer({ block }: { block: PageBlock }) {
     /* ============ Footer 页脚（v3.5 · 全局布局 · 多列） ============ */
     case 'site_footer': {
       const v = d.variant ?? 'multi';
-      const cols = (d.columns ?? []).filter((c: any) => c && c.heading);
+      // columns 语义冲突：site_footer 的列数据（数组）与其它组件列数（数字）同名，此处按数组处理
+      const cols = ((d as any).columns ?? []).filter((c: any) => c && c.heading);
       const socials = (d.socials ?? []).filter((s: any) => s && s.href);
       return (
         <footer class={`site-footer site-footer--${v}`} style={secStyle(d)}>
