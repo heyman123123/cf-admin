@@ -12,8 +12,6 @@
  *  - object     → 分组对象（嵌套字段，折叠展示）
  *  - array      → 对象数组，渲染为可编辑表格（列=字段，行=对象，支持增删/排序）
  *  - json       → 高级：裸 JSON 编辑（兜底）
- *
- * v3 新增：字段 group/description 可选；组件级 visual variants（视觉变体）。
  */
 
 export type FieldValue = string | number | boolean | null | undefined;
@@ -139,8 +137,10 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
       subtitle: '基于 Cloudflare 全栈 Serverless 的动态官网 + CRM 一体化系统，边缘毫秒级分发、零运维数据库。',
       align: 'center',
       bg: 'gradient',
-      primaryCta: { text: '开始使用', href: '#' },
-      secondaryCta: { text: '查看方案', href: '#' },
+      ctas: [
+        { text: '开始使用', href: '#' },
+        { text: '查看方案', href: '#' },
+      ],
       image: '',
     }),
     fields: [
@@ -150,14 +150,7 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
       { type: 'select', key: 'align', label: '对齐方式', options: [{ value: 'center', label: '居中' }, { value: 'left', label: '左对齐' }] },
       { type: 'select', key: 'bg', label: '背景风格', options: [{ value: 'gradient', label: '渐变' }, { value: 'dark', label: '深色' }, { value: 'light', label: '浅色' }] },
       {
-        type: 'object', key: 'primaryCta', label: '主按钮',
-        fields: [
-          { type: 'text', key: 'text', label: '按钮文字' },
-          { type: 'text', key: 'href', label: '链接' },
-        ],
-      },
-      {
-        type: 'object', key: 'secondaryCta', label: '次按钮',
+        type: 'array', key: 'ctas', label: '按钮列表', addLabel: '+ 添加按钮',
         fields: [
           { type: 'text', key: 'text', label: '按钮文字' },
           { type: 'text', key: 'href', label: '链接' },
@@ -406,13 +399,13 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     defaults: () => ({
       title: '准备好开始了吗？',
       subtitle: '免费注册，5 分钟上线你的官网',
-      cta: { text: '立即注册', href: '#' },
+      ctas: [{ text: '立即注册', href: '#' }],
     }),
     fields: [
       { type: 'text', key: 'title', label: '标题' },
       { type: 'text', key: 'subtitle', label: '副标题' },
       {
-        type: 'object', key: 'cta', label: '按钮',
+        type: 'array', key: 'ctas', label: '按钮列表', addLabel: '+ 添加按钮',
         fields: [
           { type: 'text', key: 'text', label: '按钮文字' },
           { type: 'text', key: 'href', label: '链接' },
@@ -486,10 +479,22 @@ export const SCHEMA_MAP: Record<string, BlockSchema> = Object.fromEntries(
 /** 组件库分组展示 */
 export const BLOCK_GROUPS = Array.from(new Set(BLOCK_SCHEMAS.map((s) => s.group)));
 
-/** 兼容旧数据：把 { cta: {...} } 映射到 { primaryCta } 等（v1→v2 数据迁移） */
+/** 兼容旧数据：cta → ctas 数组（hero/cta_band 按钮数组化，v3.3 迁移） */
 export function migrateContent(type: string, data: JsonObject): JsonObject {
-  if (type === 'hero' && data.cta && !data.primaryCta) {
-    return { ...data, primaryCta: data.cta };
+  if (type === 'hero' && !Array.isArray(data.ctas)) {
+    const old: any[] = [data.primaryCta ?? data.cta, data.secondaryCta ?? data.cta_secondary]
+      .filter((c) => c && typeof c === 'object' && c.text);
+    if (old.length) {
+      const { primaryCta, secondaryCta, cta, cta_secondary, ...rest } = data as Record<string, any>;
+      return { ...rest, ctas: old };
+    }
+  }
+  if (type === 'cta_band' && !Array.isArray(data.ctas)) {
+    const cta = data.cta;
+    if (cta && typeof cta === 'object' && cta.text) {
+      const { cta: _cta, ...rest } = data as Record<string, any>;
+      return { ...rest, ctas: [cta] };
+    }
   }
   return data;
 }
