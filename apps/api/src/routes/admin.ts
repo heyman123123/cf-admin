@@ -135,6 +135,16 @@ adminRoutes.patch('/pages/:id/publish', async (c) => {
   return c.json({ success: true, purged: url, version: (maxRow?.m ?? 0) + 1 });
 });
 
+/* ------------------------------ 实时预览 URL ------------------------------ */
+
+adminRoutes.get('/preview-url', async (c) => {
+  const slug = c.req.query('slug') ?? '/';
+  const base = c.env.APP_URL ?? new URL(c.req.url).origin;
+  const path = slug.startsWith('/') ? slug : `/${slug}`;
+  const url = `${base.replace(/\/$/, '')}${path}?preview=${c.env.PREVIEW_TOKEN}`;
+  return c.json({ url });
+});
+
 adminRoutes.delete('/pages/:id', async (c) => {
   const db = drizzle(c.env.DB);
   const [page] = await db.select().from(pages).where(eq(pages.id, c.req.param('id'))).limit(1);

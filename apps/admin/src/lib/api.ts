@@ -61,6 +61,9 @@ export const api = {
     request<{ part: string; blocks: BlockDraft[] }>(`/layout/${part}`),
   saveLayout: (part: 'header' | 'footer', blocks: BlockDraft[]) =>
     request(`/layout/${part}`, { method: 'PUT', body: JSON.stringify({ blocks }) }),
+  // v3.9：实时预览 URL（服务端拼接 preview token，不暴露给前端）
+  previewUrl: (slug: string) =>
+    request<{ url: string }>(`/preview-url?slug=${encodeURIComponent(slug)}`),
 
   uploadMedia: (file: File) => {
     const fd = new FormData();
@@ -100,7 +103,7 @@ export const api = {
   mailShare: (id: string) =>
     request<{ token: string; url: string }>(`/api/mail/messages/${id}/share`, { method: 'POST' }),
   mailSend: (body: { to: string; subject: string; text?: string; html?: string }) =>
-    request(`/api/mail/send`, { method: 'POST', body: JSON.stringify(body) }),
+    request(`/api/mail/send`, { method: 'POST', body: JSON.stringify({ body }) }),
 };
 
 export interface PageItem {

@@ -127,8 +127,9 @@ siteRoutes.get('/*', async (c) => {
 
   const resp = c.html(html, {
     headers: {
-      // v3.8：缩短页面缓存（5 分钟），避免发布/改版后边缘缓存残留导致看不到最新页头页脚
-      'Cache-Control': isPreview ? 'no-store' : 'public, max-age=300',
+      // v3.9：浏览器不缓存（max-age=0），CDN/边缘缓存 5 分钟（s-maxage=300）。
+      // 发布接口会 purge 边缘缓存 → 发布后用户刷新立即看到新内容；边缘命中仍保持低 TTFB。
+      'Cache-Control': isPreview ? 'no-store' : 'public, max-age=0, s-maxage=300',
       'X-Powered-By': 'Hono + Cloudflare Workers',
     },
   });
