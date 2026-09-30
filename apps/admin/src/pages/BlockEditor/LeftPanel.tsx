@@ -3,15 +3,16 @@
  * v3.5：从 BlockEditor.tsx 拆出（「样式和主题」tab 见 ThemeTab.tsx）。
  * v3.6：左栏加宽（340px）+ Tab 紧凑化防溢出。
  * v3.7：全局布局 tab 内直接展示 Header/Footer 区块列表（不再跳转到「页面区块」tab）。
- * v3.9：页头/页脚显隐改为卡片式 Toggle（美化）。
+ * v3.10：样式和主题 tab 内容并入左栏内部（不再右侧展开）。
  */
 import { SCHEMA_MAP } from '../../lib/blocks';
 import { metaOf, type Draft } from '../../lib/blockPreview';
 import { Icon } from '../../lib/editorParts';
+import ThemeTab from './ThemeTab';
 
 export type Tab = 'blocks' | 'layout' | 'theme';
 
-export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, shownBlocks, selected, setSelected, onSelectFromList, hidden, toggleHidden, duplicate, remove, reorder, dragFrom, setDragFrom, dragOver, setDragOver, openPop, isLayout, layoutPart, layoutBlocks, switchTarget, showHeader, showFooter, savePageFlags }: {
+export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, shownBlocks, selected, setSelected, onSelectFromList, hidden, toggleHidden, duplicate, remove, reorder, dragFrom, setDragFrom, dragOver, setDragOver, openPop, isLayout, layoutPart, layoutBlocks, switchTarget, showHeader, showFooter, savePageFlags, themePresets, theme, setTheme, applyPreset, saveTheme, themeSaved }: {
   tab: Tab; setTab: (t: Tab) => void;
   layersOpen: boolean; setLayersOpen: React.Dispatch<React.SetStateAction<boolean>>;
   shownBlocks: Draft[];
@@ -30,6 +31,12 @@ export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, show
   switchTarget: (part: 'header' | 'footer' | null) => void;
   showHeader: number; showFooter: number;
   savePageFlags: (header: number, footer: number) => void;
+  themePresets: { key: string; name: string; vars: Record<string, string> }[];
+  theme: Record<string, string>;
+  setTheme: (t: Record<string, string>) => void;
+  applyPreset: (vars: Record<string, string>) => void;
+  saveTheme: () => void;
+  themeSaved: boolean;
 }) {
   const schemaOf = (type: string) => SCHEMA_MAP[type] ?? SCHEMA_MAP.hero;
 
@@ -49,6 +56,7 @@ export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, show
                 title="在上方添加区块"
                 onClick={(e) => openPop(e, i, 'above')}
                 className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-blue-600 text-white shadow-md shadow-blue-600/30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center"
+                style={{ opacity: undefined }}
                 onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; }}
               ><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
@@ -267,6 +275,18 @@ export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, show
             </div>
           </div>
         )
+      )}
+
+      {/* ---------- Tab：样式和主题（并入左栏内部，不再右侧展开） ---------- */}
+      {tab === 'theme' && (
+        <ThemeTab
+          themePresets={themePresets}
+          theme={theme}
+          setTheme={setTheme}
+          applyPreset={applyPreset}
+          saveTheme={saveTheme}
+          themeSaved={themeSaved}
+        />
       )}
     </div>
   );
