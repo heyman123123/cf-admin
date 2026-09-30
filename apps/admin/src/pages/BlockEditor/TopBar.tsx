@@ -7,7 +7,7 @@ import { Icon } from '../../lib/editorParts';
 export type SaveState = 'idle' | 'saving' | 'saved';
 export interface VersionRow { id: string; version: number; status: 'draft' | 'published'; created_at: number; created_by?: string | null }
 
-export default function TopBar({ saving, isLayout, layoutPart, canUndo, canRedo, undo, redo, device, setDevice, versions, loadVersions, setVersionOpen, save, nav }: {
+export default function TopBar({ saving, isLayout, layoutPart, canUndo, canRedo, undo, redo, device, setDevice, versions, loadVersions, setVersionOpen, save, nav, preview }: {
   saving: SaveState;
   isLayout: boolean;
   layoutPart: 'header' | 'footer' | null;
@@ -20,6 +20,7 @@ export default function TopBar({ saving, isLayout, layoutPart, canUndo, canRedo,
   setVersionOpen: (b: boolean) => void;
   save: (publish: boolean) => void;
   nav: (p: string) => void;
+  preview: () => void;
 }) {
   const deviceLabel = device === 'mobile' ? '375px' : device === 'tablet' ? '768px' : '自适应';
   return (
@@ -66,7 +67,7 @@ export default function TopBar({ saving, isLayout, layoutPart, canUndo, canRedo,
         <span className="hidden lg:inline text-[10px] text-slate-500 whitespace-nowrap w-12">{deviceLabel}</span>
       </div>
 
-      {/* 右：历史版本 + 保存/发布 */}
+      {/* 右：历史版本 + 实时预览 + 保存/发布 */}
       <div className="flex items-center gap-2">
         {!isLayout && (
           <button onClick={() => { loadVersions(); setVersionOpen(true); }} title="查看历史版本"
@@ -80,6 +81,13 @@ export default function TopBar({ saving, isLayout, layoutPart, canUndo, canRedo,
           className="px-3.5 py-1.5 rounded-lg border border-slate-600 text-[13px] font-medium text-slate-200 hover:border-slate-400 hover:text-white disabled:opacity-50 transition whitespace-nowrap">
           {saving === 'saving' ? '保存中…' : isLayout ? `保存${layoutPart === 'header' ? '页头' : '页脚'}` : '存草稿'}
         </button>
+        {!isLayout && (
+          <button onClick={preview} title="实时预览：新窗口打开当前页面（含未发布草稿）"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-600 text-[13px] font-medium text-slate-200 hover:border-sky-400 hover:text-sky-300 transition whitespace-nowrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            实时预览
+          </button>
+        )}
         {!isLayout && (
           <button onClick={() => save(true)} disabled={saving === 'saving'}
             className="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-600/25 disabled:opacity-50 transition whitespace-nowrap">

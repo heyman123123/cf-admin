@@ -103,7 +103,7 @@ export const api = {
   mailShare: (id: string) =>
     request<{ token: string; url: string }>(`/api/mail/messages/${id}/share`, { method: 'POST' }),
   mailSend: (body: { to: string; subject: string; text?: string; html?: string }) =>
-    request(`/api/mail/send`, { method: 'POST', body: JSON.stringify({ body }) }),
+    request(`/api/mail/send`, { method: 'POST', body: JSON.stringify(body) }),
 };
 
 export interface PageItem {

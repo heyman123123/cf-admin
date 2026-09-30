@@ -3,7 +3,7 @@
  * v3.5：从 BlockEditor.tsx 拆出（「样式和主题」tab 见 ThemeTab.tsx）。
  * v3.6：左栏加宽（340px）+ Tab 紧凑化防溢出。
  * v3.7：全局布局 tab 内直接展示 Header/Footer 区块列表（不再跳转到「页面区块」tab）。
- * v3.8：列表选中 → 画布滚动定位到组件（onSelectFromList）。
+ * v3.9：页头/页脚显隐改为卡片式 Toggle（美化）。
  */
 import { SCHEMA_MAP } from '../../lib/blocks';
 import { metaOf, type Draft } from '../../lib/blockPreview';
@@ -49,7 +49,6 @@ export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, show
                 title="在上方添加区块"
                 onClick={(e) => openPop(e, i, 'above')}
                 className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-blue-600 text-white shadow-md shadow-blue-600/30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center"
-                style={{ opacity: undefined }}
                 onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; }}
               ><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
@@ -152,19 +151,44 @@ export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, show
                 className={`text-slate-400 transition-transform duration-200 ${layersOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6" /></svg>
             </button>
             {!isLayout && (
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-1.5 text-[11.5px] text-slate-600 cursor-pointer select-none">
-                  <input type="checkbox" checked={showHeader === 1}
-                    onChange={(e) => { const v = e.target.checked ? 1 : 0; savePageFlags(v, showFooter); }}
-                    className="accent-blue-600 w-3.5 h-3.5" />
-                  显示页头（全局 Header）
-                </label>
-                <label className="flex items-center gap-1.5 text-[11.5px] text-slate-600 cursor-pointer select-none">
-                  <input type="checkbox" checked={showFooter === 1}
-                    onChange={(e) => { const v = e.target.checked ? 1 : 0; savePageFlags(showHeader, v); }}
-                    className="accent-blue-600 w-3.5 h-3.5" />
-                  显示页脚（全局 Footer）
-                </label>
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
+                  {/* 页头 Toggle 卡片 */}
+                  <button type="button" onClick={() => savePageFlags(showHeader === 1 ? 0 : 1, showFooter)}
+                    className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-xl border transition select-none ${
+                      showHeader === 1
+                        ? 'border-blue-500 bg-blue-50/80 shadow-sm shadow-blue-500/10'
+                        : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 transition ${
+                        showHeader === 1 ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-400'}`}>H</span>
+                      <span className="text-[11.5px] font-semibold text-slate-700 leading-tight">显示页头</span>
+                    </span>
+                    <span className={`relative inline-flex w-8 h-[18px] rounded-full transition-colors duration-200 shrink-0 ${
+                      showHeader === 1 ? 'bg-blue-500' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow transition-all duration-200 ${
+                        showHeader === 1 ? 'left-[18px]' : 'left-[2px]'}`} />
+                    </span>
+                  </button>
+                  {/* 页脚 Toggle 卡片 */}
+                  <button type="button" onClick={() => savePageFlags(showHeader, showFooter === 1 ? 0 : 1)}
+                    className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-xl border transition select-none ${
+                      showFooter === 1
+                        ? 'border-blue-500 bg-blue-50/80 shadow-sm shadow-blue-500/10'
+                        : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 transition ${
+                        showFooter === 1 ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-400'}`}>F</span>
+                      <span className="text-[11.5px] font-semibold text-slate-700 leading-tight">显示页脚</span>
+                    </span>
+                    <span className={`relative inline-flex w-8 h-[18px] rounded-full transition-colors duration-200 shrink-0 ${
+                      showFooter === 1 ? 'bg-blue-500' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow transition-all duration-200 ${
+                        showFooter === 1 ? 'left-[18px]' : 'left-[2px]'}`} />
+                    </span>
+                  </button>
+                </div>
+                <p className="text-[10.5px] text-slate-400 leading-snug">切换「全局布局」中的页头/页脚在本页的显示（保存后对所有区块生效）。</p>
               </div>
             )}
             <p className="text-[11px] text-slate-400 mt-0.5">拖拽排序 · 点击选中 · hover 添加上/下区块</p>
