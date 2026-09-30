@@ -127,7 +127,8 @@ siteRoutes.get('/*', async (c) => {
 
   const resp = c.html(html, {
     headers: {
-      'Cache-Control': isPreview ? 'no-store' : 'public, max-age=604800',
+      // v3.8：缩短页面缓存（5 分钟），避免发布/改版后边缘缓存残留导致看不到最新页头页脚
+      'Cache-Control': isPreview ? 'no-store' : 'public, max-age=300',
       'X-Powered-By': 'Hono + Cloudflare Workers',
     },
   });

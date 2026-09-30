@@ -72,6 +72,8 @@ a:hover { text-decoration: none; }
 .btn--primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,.45); }
 .btn--ghost { background: transparent; color: inherit; border: 1.5px solid var(--c-border); }
 .btn--ghost:hover { border-color: var(--c-primary); color: var(--c-primary); }
+.btn--outline { background: #fff; color: var(--c-primary); border: 1.5px solid var(--c-border); box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+.btn--outline:hover { border-color: var(--c-primary); }
 .section--dark .btn--ghost { border-color: #334155; color: #e2e8f0; }
 .section--dark .btn--ghost:hover { border-color: var(--c-primary); color: #93c5fd; }
 .btn--lg { padding: 16px 40px; font-size: 18px; }
