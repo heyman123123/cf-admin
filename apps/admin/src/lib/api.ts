@@ -49,10 +49,18 @@ export const api = {
   createPage: (body: { slug: string; title: string; meta_description?: string }) =>
     request<{ id: string }>('/pages', { method: 'POST', body: JSON.stringify(body) }),
   publishPage: (id: string) =>
-    request<{ success: boolean; purged: string }>(`/pages/${id}/publish`, { method: 'PATCH' }),
+    request<{ success: boolean; purged: string; version: number }>(`/pages/${id}/publish`, { method: 'PATCH' }),
   listBlocks: (pageId: string) => request<BlockItem[]>(`/pages/${pageId}/blocks`),
   saveBlocks: (pageId: string, blocks: BlockDraft[]) =>
     request(`/pages/${pageId}/blocks`, { method: 'PUT', body: JSON.stringify(blocks) }),
+  listPageVersions: (pageId: string) =>
+    request<PageVersion[]>(`/pages/${pageId}/versions`),
+  restoreVersion: (pageId: string, vid: string) =>
+    request<{ success: boolean; version: number }>(`/pages/${pageId}/versions/${vid}/restore`, { method: 'POST' }),
+  getLayout: (part: 'header' | 'footer') =>
+    request<{ part: string; blocks: BlockDraft[] }>(`/layout/${part}`),
+  saveLayout: (part: 'header' | 'footer', blocks: BlockDraft[]) =>
+    request(`/layout/${part}`, { method: 'PUT', body: JSON.stringify({ blocks }) }),
 
   uploadMedia: (file: File) => {
     const fd = new FormData();
@@ -68,7 +76,7 @@ export const api = {
 
   stats: () => request<{ total: number; new_last_30d: number; by_status: { status: string; c: number }[] }>('/stats/overview'),
 
-  updatePage: (id: string, body: { slug?: string; title?: string; meta_description?: string; is_published?: number }) =>
+  updatePage: (id: string, body: { slug?: string; title?: string; meta_description?: string; is_published?: number; show_header?: number; show_footer?: number }) =>
     request(`/pages/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   getTheme: () => request<{ theme: Record<string, string>; presets: { key: string; name: string; vars: Record<string, string> }[] }>('/theme'),
   saveTheme: (theme: Record<string, string>) =>
@@ -99,6 +107,13 @@ export interface PageItem {
   id: string; slug: string; title: string;
   metaDescription?: string | null; isPublished: number;
   createdAt: number; updatedAt: number;
+  showHeader?: number; showFooter?: number;
+  versionCount?: number; publishedCount?: number;
+  publishedAt?: number | null; draftAt?: number | null;
+}
+export interface PageVersion {
+  id: string; version: number; status: 'draft' | 'published';
+  created_by?: string | null; created_at: number;
 }
 export interface BlockItem {
   id: string; pageId: string; blockType: string;
