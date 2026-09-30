@@ -3,6 +3,7 @@
  * 布局：全局顶栏（编辑器级，跨三栏）+ 左 Layers/全局布局/主题 + 中画布（点选即配） + 右设置面板。
  * v3.5 特性：画布点击选中不跳顶（消息驱动描边 + 滚动保持）、样式分组配置、
  *           全局 Header/Footer 可视化编辑、页面级显隐、版本历史（草稿/线上）、组件库 hover 缩略图。
+ * v4.0：深色侧栏 + 亮色画布（Design Tokens）+ 左栏折叠自适应（≤1280px）。
  */
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -388,8 +389,18 @@ window.scrollTo(0,${scrollTopRef.current});
 
   const deviceWidth = device === 'mobile' ? 375 : device === 'tablet' ? 768 : '100%';
 
+  // v4.0：左栏折叠自适应（≤1280px 自动折叠为图标栏，可手动展开）
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1280px)');
+    const onChange = (e: MediaQueryListEvent) => setLeftCollapsed(e.matches);
+    setLeftCollapsed(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-100 overflow-hidden">
+    <div className="flex flex-col h-screen w-full bg-[var(--editor-bg)] overflow-hidden">
       {/* ======== 全局顶栏（属于整个编辑器，跨三栏） ======== */}
       <TopBar
         saving={saving}
@@ -411,7 +422,29 @@ window.scrollTo(0,${scrollTopRef.current});
 
       {/* ======== 三栏主体 ======== */}
       <div className="flex flex-1 min-h-0">
-        {/* 左：页面区块 / 全局布局 / 样式和主题（tab 切换） */}
+        {/* 左：折叠态图标栏（≤1280px 自动，可手动展开） */}
+        {leftCollapsed ? (
+          <div className="w-11 shrink-0 border-r border-[var(--border-dim)] bg-[var(--editor-bg)] flex flex-col items-center pt-2 pb-3 gap-1.5">
+            <button onClick={() => setLeftCollapsed(false)} title="展开面板"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-mid)] hover:text-[var(--text-hi)] hover:bg-[var(--surface)] transition">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18M3 9h6M3 15h6"/></svg>
+            </button>
+            <span className="w-6 h-px bg-[var(--border-dim)] my-1" />
+            <button onClick={() => { setTab('blocks'); setLeftCollapsed(false); }} title="页面区块"
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${tab === 'blocks' ? 'text-blue-400 bg-[var(--surface-active)]' : 'text-[var(--text-mid)] hover:text-[var(--text-hi)] hover:bg-[var(--surface)]'}`}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            </button>
+            <button onClick={() => { setTab('layout'); setLeftCollapsed(false); }} title="全局布局"
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${tab === 'layout' ? 'text-blue-400 bg-[var(--surface-active)]' : 'text-[var(--text-mid)] hover:text-[var(--text-hi)] hover:bg-[var(--surface)]'}`}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="18" height="7" x="3" y="14" rx="1"/></svg>
+            </button>
+            <button onClick={() => { setTab('theme'); setLeftCollapsed(false); }} title="样式和主题"
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${tab === 'theme' ? 'text-blue-400 bg-[var(--surface-active)]' : 'text-[var(--text-mid)] hover:text-[var(--text-hi)] hover:bg-[var(--surface)]'}`}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.52-.67 1.67-1.33.17-.66-.08-1.17-.5-1.5-.4-.33-.83-1-.83-1.67a2 2 0 0 1 2-2h3.5c2.9 0 5.16-2.9 3.66-5.9C20.6 7.27 16.6 6 13.5 6c-.5 0-1.5-.5-1.5-1.5S13 2 12 2Z"/></svg>
+            </button>
+          </div>
+        ) : (
+        /* 左：页面区块 / 全局布局 / 样式和主题（tab 切换） */
         <LeftPanel
           tab={tab}
           setTab={setTab}
@@ -445,6 +478,7 @@ window.scrollTo(0,${scrollTopRef.current});
           saveTheme={saveTheme}
           themeSaved={themeSaved}
         />
+        )}
 
         {/* 右：设置面板（order-2 → 视觉最右） */}
         <SettingsPanel
