@@ -44,6 +44,7 @@ export default function BlockEditor() {
   const [layoutBlocks, setLayoutBlocks] = useState<Record<'header' | 'footer', Draft[]>>({ header: [], footer: [] });
   const [showHeader, setShowHeader] = useState(1);
   const [showFooter, setShowFooter] = useState(1);
+  const [pageSlug, setPageSlug] = useState('/');
   const [versions, setVersions] = useState<VersionRow[]>([]);
   const [versionOpen, setVersionOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -65,11 +66,17 @@ export default function BlockEditor() {
       if (p) {
         setShowHeader(p.showHeader ?? 1);
         setShowFooter(p.showFooter ?? 1);
+        setPageSlug(p.slug);
       }
     }).catch(() => undefined);
     loadVersions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // v3.9：实时预览（新窗口打开带 preview token 的页面，no-store 实时渲染）
+  const preview = () => {
+    api.previewUrl(pageSlug).then((r) => window.open(r.url, '_blank')).catch(() => undefined);
+  };
 
   // 全局布局（Header/Footer）
   useEffect(() => {
@@ -400,6 +407,7 @@ window.scrollTo(0,${scrollTopRef.current});
         setVersionOpen={setVersionOpen}
         save={save}
         nav={nav}
+        preview={preview}
       />
 
       {/* ======== 三栏主体 ======== */}
