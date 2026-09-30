@@ -87,6 +87,16 @@ function parseLinks(text?: string): { label: string; href: string }[] {
     });
 }
 
+/** v3.8：按配置输出按钮 class（兼容旧数据：无 style 时按位置 primary/ghost） */
+function btnCls(c: any, i?: number): string {
+  const s = c?.style;
+  if (s === 'ghost') return 'btn btn--ghost';
+  if (s === 'outline') return 'btn btn--outline';
+  if (s === 'white') return 'btn btn--white';
+  if (s === 'primary') return 'btn btn--primary';
+  return i === undefined || i === 0 ? 'btn btn--primary' : 'btn btn--ghost';
+}
+
 export function renderBlockPreview(b: Draft): string {
   const d = b.content_json;
   const esc = (s: string) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -101,7 +111,7 @@ export function renderBlockPreview(b: Draft): string {
       return `<header class="site-header site-header--${v}" ${sticky ? '' : 'style="position:static"'} ${secStyleStr(d)}><div class="site-header-inner">
         <a class="site-logo" href="/">${d.logoImage ? `<img src="${esc(d.logoImage)}" alt="${esc(d.logo)}">` : esc(d.logo || 'LOGO')}</a>
         ${links.length ? `<nav class="site-nav">${links.map((l: any) => `<a href="${esc(l.href || '#')}">${esc(l.label)}</a>`).join('')}</nav>` : ''}
-        ${ctas.length ? `<div class="site-header-cta">${ctas.map((c: any, i: number) => `<a class="${i === 0 ? 'btn btn--primary' : 'site-cta--ghost btn'}">${esc(c.text)}</a>`).join('')}</div>` : ''}
+        ${ctas.length ? `<div class="site-header-cta">${ctas.map((c: any, i: number) => `<a class="${btnCls(c, i)}">${esc(c.text)}</a>`).join('')}</div>` : ''}
       </div></header>`;
     }
 
@@ -137,7 +147,7 @@ export function renderBlockPreview(b: Draft): string {
         ${d.badge ? `<span class="eyebrow hero-badge">${esc(d.badge)}</span>` : ''}
         ${d.title ? `<h1 class="h1">${esc(d.title)}</h1>` : ''}
         ${d.subtitle ? `<p class="lead">${esc(d.subtitle)}</p>` : ''}
-        ${ctas.length ? `<div class="btn-row">${ctas.map((c: any, i: number) => `<a class="btn ${i === 0 ? 'btn--primary' : 'btn--ghost'} btn--lg">${esc(c.text)}</a>`).join('')}</div>` : ''}
+        ${ctas.length ? `<div class="btn-row">${ctas.map((c: any, i: number) => `<a class="${btnCls(c, i)} btn--lg">${esc(c.text)}</a>`).join('')}</div>` : ''}
         ${v !== 'image' && d.image ? `<img class="hero-img" src="${esc(d.image)}" style="max-width:800px;margin:48px auto 0">` : ''}
       </div></section>`;
     }
@@ -162,7 +172,7 @@ export function renderBlockPreview(b: Draft): string {
       const plans = (d.plans ?? []).filter((p: any) => p && p.name);
       return `<section class="section" ${secStyleStr(d)}><div class="container">${d.title ? `<h2 class="h2" style="text-align:center">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead" style="text-align:center">${esc(d.subtitle)}</p>` : ''}${plans.length ? `<div class="${colCls}" style="margin-top:48px;align-items:stretch">${plans.map((p: any) => {
         const fl = Array.isArray(p.features) ? p.features : String(p.features ?? '').split('\n').filter(Boolean);
-        return `<div class="pricing-card ${p.featured ? 'pricing-card--featured' : ''}">${p.featured ? `<span class="pricing-tag">最受欢迎</span>` : ''}<div class="pricing-name">${esc(p.name)}</div><div class="pricing-price">${esc(p.price)} ${p.period ? `<small>${esc(p.period)}</small>` : ''}</div>${fl.length ? `<ul class="pricing-features">${fl.map((f: string) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}${p.cta ? `<a class="btn btn--primary">${esc(p.cta)}</a>` : ''}</div>`;
+        return `<div class="pricing-card ${p.featured ? 'pricing-card--featured' : ''}">${p.featured ? `<span class="pricing-tag">最受欢迎</span>` : ''}<div class="pricing-name">${esc(p.name)}</div><div class="pricing-price">${esc(p.price)} ${p.period ? `<small>${esc(p.period)}</small>` : ''}</div>${fl.length ? `<ul class="pricing-features">${fl.map((f: string) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}${p.cta ? `<a class="${btnCls(p)}">${esc(p.cta)}</a>` : ''}</div>`;
       }).join('')}</div>` : ''}</div></section>`;
     }
     case 'testimonials': {
@@ -193,7 +203,7 @@ export function renderBlockPreview(b: Draft): string {
       const v = d.variant ?? 'gradient';
       const bgImg = v === 'image' && d.image ? `background-image:linear-gradient(rgba(2,6,23,.6),rgba(2,6,23,.6)),url('${esc(d.image)}');background-size:cover;background-position:center` : v === 'dark' ? 'background:linear-gradient(135deg,#0f172a,#1e293b)' : '';
       const ctas = (Array.isArray(d.ctas) ? d.ctas : d.cta ? [d.cta] : []).filter((c: any) => c && c.text);
-      return `<section class="section" ${secStyleStr(d)}><div class="container"><div class="cta-band${v === 'dark' ? ' cta-band--dark' : ''}" ${secStyleStr(d, bgImg)}>${d.cta_icon ? `<div class="cta-icon">${esc(d.cta_icon)}</div>` : ''}${d.title ? `<h2 class="h2">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead">${esc(d.subtitle)}</p>` : ''}${ctas.length ? `<div class="btn-row">${ctas.map((c: any) => `<a class="btn btn--lg">${esc(c.text)}</a>`).join('')}</div>` : ''}</div></div></section>`;
+      return `<section class="section" ${secStyleStr(d)}><div class="container"><div class="cta-band${v === 'dark' ? ' cta-band--dark' : ''}" ${secStyleStr(d, bgImg)}>${d.cta_icon ? `<div class="cta-icon">${esc(d.cta_icon)}</div>` : ''}${d.title ? `<h2 class="h2">${esc(d.title)}</h2>` : ''}${d.subtitle ? `<p class="lead">${esc(d.subtitle)}</p>` : ''}${ctas.length ? `<div class="btn-row">${ctas.map((c: any) => `<a class="${btnCls(c)} btn--lg">${esc(c.text)}</a>`).join('')}</div>` : ''}</div></div></section>`;
     }
     case 'contact_form': {
       const v = d.variant ?? 'center';

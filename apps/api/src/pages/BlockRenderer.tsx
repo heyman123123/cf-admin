@@ -19,7 +19,7 @@ interface BlockData {
   paddingTop?: number;
   paddingBottom?: number;
   bullets?: { icon?: string; title: string; desc: string }[];
-  plans?: { name: string; price: string; period?: string; features: string[]; featured?: boolean; cta?: string }[];
+  plans?: { name: string; price: string; period?: string; features: string[]; featured?: boolean; cta?: string; ctaStyle?: string }[];
   testimonials?: { quote: string; author: string; role: string }[];
   stats?: { num: string; label: string }[];
   faqs?: { q: string; a: string }[];
@@ -28,26 +28,18 @@ interface BlockData {
   posts?: { title: string; excerpt?: string; date?: string; image?: string; href?: string }[];
   video?: { url?: string; embed?: string; poster?: string };
   form?: { submit_label?: string; note?: string };
-  ctas?: { text: string; href: string }[];
+  ctas?: { text: string; href: string; style?: string }[];
   primaryCta?: { text: string; href: string };
   secondaryCta?: { text: string; href: string };
   cta?: { text: string; href: string };
   cta_secondary?: { text: string; href: string };
+  ctaStyle?: string;
   height?: 'sm' | 'md' | 'lg';
   // v3.5 通用样式字段（区块设置 · 样式分组）
   bgColor?: string;
   textColor?: string;
   radius?: number;
   maxWidth?: number;
-  // v3.5 布局组件
-  logo?: string;
-  logoImage?: string;
-  links?: { label: string; href: string }[];
-  sticky?: boolean;
-  description?: string;
-  columns?: { heading: string; links_text: string }[];
-  socials?: { icon: string; href: string }[];
-  bottomText?: string;
 }
 
 function parse(b: PageBlock): BlockData {
@@ -72,6 +64,16 @@ function cols(n?: string | number): string {
   if (v <= 2) return 'grid grid-2';
   if (v >= 4) return 'grid grid-4';
   return 'grid grid-3';
+}
+
+/** v3.8：按配置输出按钮 class（兼容旧数据：无 style 时按位置 primary/ghost） */
+function btnCls(c: { style?: string } | undefined, i?: number): string {
+  const s = c?.style;
+  if (s === 'ghost') return 'btn btn--ghost';
+  if (s === 'outline') return 'btn btn--outline';
+  if (s === 'white') return 'btn btn--white';
+  if (s === 'primary') return 'btn btn--primary';
+  return i === undefined || i === 0 ? 'btn btn--primary' : 'btn btn--ghost';
 }
 
 /** v3.5：通用区块样式注入 section style（间距 + 背景 + CSS 变量） */
@@ -110,7 +112,7 @@ export function BlockRenderer({ block }: { block: PageBlock }) {
             {(d.ctas?.length ?? 0) > 0 && (
               <div class="btn-row">
                 {d.ctas!.map((c, i) => (
-                  <a class={`btn btn--lg ${i === 0 ? 'btn--primary' : 'btn--ghost'}`} href={c.href ?? '#'} key={i}>{c.text}</a>
+                  <a class={`${btnCls(c, i)} btn--lg`} href={c.href ?? '#'} key={i}>{c.text}</a>
                 ))}
               </div>
             )}
@@ -208,7 +210,7 @@ export function BlockRenderer({ block }: { block: PageBlock }) {
                         <li key={j}>{f}</li>
                       ))}
                     </ul>
-                    {p.cta && <a href={d.ctas?.[0]?.href ?? '#'} class="btn btn--primary">{p.cta}</a>}
+                    {p.cta && <a href={d.ctas?.[0]?.href ?? '#'} class={btnCls({ style: p.ctaStyle }, 0)}>{p.cta}</a>}
                   </div>
                 ))}
               </div>
@@ -389,8 +391,8 @@ export function BlockRenderer({ block }: { block: PageBlock }) {
               {d.subtitle && <p class="lead">{d.subtitle}</p>}
               {ctas.length > 0 && (
                 <div class="btn-row">
-                  {ctas.map((c, i) => (
-                    <a class="btn btn--lg" href={c.href ?? '#'} key={i}>{c.text}</a>
+                  {ctas.map((c: any, i: number) => (
+                    <a class={`${btnCls(c, i)} btn--lg`} href={c.href ?? '#'} key={i}>{c.text}</a>
                   ))}
                 </div>
               )}
@@ -427,7 +429,7 @@ export function BlockRenderer({ block }: { block: PageBlock }) {
             {ctas.length > 0 && (
               <div class="site-header-cta">
                 {ctas.map((c: any, i: number) => (
-                  <a class={i === 0 ? 'btn btn--primary' : 'btn site-cta--ghost'} href={c.href ?? '#'} key={i}>{c.text}</a>
+                  <a class={btnCls(c, i)} href={c.href ?? '#'} key={i}>{c.text}</a>
                 ))}
               </div>
             )}
