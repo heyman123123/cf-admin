@@ -35,7 +35,35 @@ async function buildHtml(c: any, slug: string): Promise<{ html: string; status: 
     .all<PageBlock>();
   const blocks = blocksRes.results ?? [];
 
-  const body = blocks.map((b) => renderToString(<BlockRenderer block={b} />)).join('');
+  // 全局 Header/Footer（site_layout），按页面开关拼装
+  const showHeader = (page as any).show_header !== 0;
+  const showFooter = (page as any).show_footer !== 0;
+  const layoutRes = await c.env.DB.prepare(
+    `SELECT id, blocks_json FROM site_layout WHERE id IN ('header','footer')`,
+  ).all<{ id: string; blocks_json: string }>();
+  const layoutMap = new Map<string, any[]>();
+  for (const row of layoutRes.results ?? []) {
+    try { layoutMap.set(row.id, JSON.parse(row.blocks_json)); } catch { layoutMap.set(row.id, []); }
+  }
+
+  const toBlock = (b: any): PageBlock => ({
+    id: '',
+    pageId: '',
+    blockType: b.block_type,
+    sortOrder: b.sort_order ?? 0,
+    contentJson: JSON.stringify(b.content_json ?? {}),
+    updatedAt: 0,
+  });
+
+  const headerHtml = showHeader
+    ? (layoutMap.get('header') ?? []).map((b: any) => renderToString(<BlockRenderer block={toBlock(b)} />)).join('')
+    : '';
+  const footerHtml = showFooter
+    ? (layoutMap.get('footer') ?? []).map((b: any) => renderToString(<BlockRenderer block={toBlock(b)} />)).join('')
+    : '';
+  const bodyHtml = blocks.map((b: PageBlock) => renderToString(<BlockRenderer block={b} />)).join('');
+
+  const body = headerHtml + bodyHtml + footerHtml;
 
   // 读取主题（KV），注入 CSS 变量
   let themeVars: Record<string, string> | null = null;
