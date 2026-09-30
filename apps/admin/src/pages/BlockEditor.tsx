@@ -223,6 +223,8 @@ export default function BlockEditor() {
   const [saving, setSaving] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
+  const [layersOpen, setLayersOpen] = useState(true);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     api.listBlocks(id!).then((rows: BlockItem[]) => {
@@ -352,86 +354,110 @@ export default function BlockEditor() {
 
   const cur = blocks[selected];
   const variants = cur ? getVariants(cur.block_type) : [];
+  const ql = query.trim().toLowerCase();
+  const visibleSchemas = ql ? BLOCK_SCHEMAS.filter((s) => s.label.toLowerCase().includes(ql) || s.type.toLowerCase().includes(ql)) : BLOCK_SCHEMAS;
+  const groupsWithSchemas = ql
+    ? BLOCK_GROUPS.map((g) => ({ g, list: visibleSchemas.filter((s) => s.group === g) })).filter((x) => x.list.length > 0)
+    : BLOCK_GROUPS.map((g) => ({ g, list: BLOCK_SCHEMAS.filter((s) => s.group === g) }));
 
   const deviceWidth = device === 'mobile' ? 375 : device === 'tablet' ? 768 : '100%';
   const deviceLabel = device === 'mobile' ? '375px' : device === 'tablet' ? '768px' : '自适应';
 
   return (
-    <div className="flex h-screen -m-6 bg-slate-100 overflow-hidden">
-      {/* ======== 左：Layers 面板 ======== */}
-      <div className="w-72 border-r border-slate-200 bg-white flex flex-col min-w-0">
-        <div className="px-4 py-3.5 border-b border-slate-200 bg-white">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[13px] font-bold text-slate-800 tracking-tight">页面区块</h3>
-            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">{blocks.length} 个区块</span>
-          </div>
+    <div className="flex h-screen w-full bg-slate-100 overflow-hidden">
+      {/* ======== 左：页面区块（折叠）+ 组件库（主区） ======== */}
+      <div className="w-80 border-r border-slate-200 bg-white flex flex-col min-w-0">
+        {/* 页面区块 Layers：可折叠 */}
+        <div className="px-4 py-3 border-b border-slate-200 bg-white">
+          <button type="button" onClick={() => setLayersOpen((o) => !o)} className="w-full flex items-center justify-between group">
+            <span className="flex items-center gap-2 text-[13px] font-bold text-slate-800 tracking-tight">
+              页面区块
+              <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">{blocks.length}</span>
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className={`text-slate-400 transition-transform duration-200 ${layersOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6" /></svg>
+          </button>
           <p className="text-[11px] text-slate-400 mt-1">拖拽排序 · 点击选中 · 眼睛显隐</p>
         </div>
 
-        <div className="flex-1 overflow-auto p-2.5 space-y-1.5">
-          {blocks.map((b, i) => {
-            const isHidden = hidden.has(i);
-            const isDragOver = dragOver === i && dragFrom !== i;
-            const active = i === selected;
-            const meta = metaOf(b.block_type);
-            return (
-              <div
-                key={i}
-                draggable
-                onDragStart={() => setDragFrom(i)}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
-                onDragLeave={() => setDragOver((v) => (v === i ? null : v))}
-                onDrop={() => { if (dragFrom !== null) reorder(dragFrom, i); setDragFrom(null); setDragOver(null); }}
-                onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
-                onClick={() => setSelected(i)}
-                className={`group relative flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] cursor-pointer border transition-all duration-150 ${isDragOver ? 'border-blue-400 bg-blue-50 shadow-inner' : active ? 'border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'} ${isHidden ? 'opacity-45' : ''}`}
-              >
-                {/* 拖拽手柄 */}
-                <span className={`shrink-0 cursor-grab opacity-40 group-hover:opacity-100 ${active ? 'text-white' : 'text-slate-400'}`} title="拖拽排序">{Icon.grip}</span>
-                {/* 类型图标 */}
-                <span className={`w-7 h-7 rounded-md bg-gradient-to-br ${meta.tint} flex items-center justify-center text-[13px] shrink-0 shadow-sm ${active ? 'ring-1 ring-white/40' : ''}`}>{meta.icon}</span>
-                <span className="flex-1 truncate font-medium">{schemaOf(b.block_type).label}</span>
-                <button
-                  title={isHidden ? '显示' : '隐藏'}
-                  onClick={(e) => { e.stopPropagation(); toggleHidden(i); }}
-                  className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                >{isHidden ? Icon.eyeOff : Icon.eye}</button>
-                <button title="复制" onClick={(e) => { e.stopPropagation(); duplicate(i); }}
-                  className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>{Icon.copy}</button>
-                <button title="删除" onClick={(e) => { e.stopPropagation(); remove(i); }}
-                  className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>{Icon.trash}</button>
+        {layersOpen && (
+          <div className="border-b border-slate-200 max-h-[30%] overflow-auto p-2.5 space-y-1.5">
+            {blocks.map((b, i) => {
+              const isHidden = hidden.has(i);
+              const isDragOver = dragOver === i && dragFrom !== i;
+              const active = i === selected;
+              const meta = metaOf(b.block_type);
+              return (
+                <div
+                  key={i}
+                  draggable
+                  onDragStart={() => setDragFrom(i)}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+                  onDragLeave={() => setDragOver((v) => (v === i ? null : v))}
+                  onDrop={() => { if (dragFrom !== null) reorder(dragFrom, i); setDragFrom(null); setDragOver(null); }}
+                  onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
+                  onClick={() => setSelected(i)}
+                  className={`group relative flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] cursor-pointer border transition-all duration-150 ${isDragOver ? 'border-blue-400 bg-blue-50 shadow-inner' : active ? 'border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'} ${isHidden ? 'opacity-45' : ''}`}
+                >
+                  <span className={`shrink-0 cursor-grab opacity-40 group-hover:opacity-100 ${active ? 'text-white' : 'text-slate-400'}`} title="拖拽排序">{Icon.grip}</span>
+                  <span className={`w-7 h-7 rounded-md bg-gradient-to-br ${meta.tint} flex items-center justify-center text-[13px] shrink-0 shadow-sm ${active ? 'ring-1 ring-white/40' : ''}`}>{meta.icon}</span>
+                  <span className="flex-1 truncate font-medium">{schemaOf(b.block_type).label}</span>
+                  <button title={isHidden ? '显示' : '隐藏'} onClick={(e) => { e.stopPropagation(); toggleHidden(i); }}
+                    className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>{isHidden ? Icon.eyeOff : Icon.eye}</button>
+                  <button title="复制" onClick={(e) => { e.stopPropagation(); duplicate(i); }}
+                    className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>{Icon.copy}</button>
+                  <button title="删除" onClick={(e) => { e.stopPropagation(); remove(i); }}
+                    className={`shrink-0 p-1 rounded transition ${active ? 'text-white/70 hover:text-white hover:bg-white/15' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>{Icon.trash}</button>
+                </div>
+              );
+            })}
+            {blocks.length === 0 && (
+              <div className="text-center py-6 px-4">
+                <div className="text-2xl mb-1">🧩</div>
+                <p className="text-xs text-slate-400">页面还没有区块，从下方组件库添加</p>
               </div>
-            );
-          })}
-          {blocks.length === 0 && (
-            <div className="text-center py-10 px-4">
-              <div className="text-3xl mb-2">🧩</div>
-              <p className="text-xs text-slate-400 leading-relaxed">页面还没有区块<br />从下方组件库添加第一个区块开始搭建</p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* 添加区块 */}
-        <div className="border-t border-slate-200 bg-slate-50/80 p-3 max-h-[46%] overflow-auto">
-          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">添加区块 · 组件库</h4>
-          {BLOCK_GROUPS.map((g) => (
-            <div key={g} className="mb-3">
-              <h5 className="text-[10px] font-semibold text-slate-400 mb-1.5">{g}</h5>
-              <div className="grid grid-cols-2 gap-1.5">
-                {BLOCK_SCHEMAS.filter((s) => s.group === g).map((s) => {
-                  const m = metaOf(s.type);
-                  return (
-                    <button key={s.type} onClick={() => addBlock(s.type)}
-                      className="group/add flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm hover:-translate-y-px transition-all text-left">
-                      <span className={`w-5 h-5 rounded bg-gradient-to-br ${m.tint} flex items-center justify-center text-[10px] shrink-0`}>{m.icon}</span>
-                      <span className="flex-1 truncate text-[11px] font-medium text-slate-600 group-hover/add:text-blue-700">{s.label}</span>
-                      <span className="text-blue-400 group-hover/add:text-blue-600 shrink-0">{Icon.plus}</span>
-                    </button>
-                  );
-                })}
-              </div>
+        {/* 组件库（主区） */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="px-3.5 pt-3 pb-2">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">组件库 · 点击添加</h4>
+            <div className="relative">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="搜索组件…"
+                className="w-full border border-slate-200 rounded-lg bg-slate-50 px-3 py-2 pr-8 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+              />
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             </div>
-          ))}
+          </div>
+          <div className="flex-1 overflow-auto px-3.5 pb-3">
+            {groupsWithSchemas.map(({ g, list }) => (
+              <div key={g} className="mb-3">
+                <h5 className="text-[10px] font-semibold text-slate-400 mb-1.5">{g}</h5>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {list.map((s) => {
+                    const m = metaOf(s.type);
+                    return (
+                      <button key={s.type} onClick={() => addBlock(s.type)}
+                        className="group/add flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm hover:-translate-y-px transition-all text-left">
+                        <span className={`w-5 h-5 rounded bg-gradient-to-br ${m.tint} flex items-center justify-center text-[10px] shrink-0`}>{m.icon}</span>
+                        <span className="flex-1 truncate text-[11px] font-medium text-slate-600 group-hover/add:text-blue-700">{s.label}</span>
+                        <span className="text-blue-400 group-hover/add:text-blue-600 shrink-0">{Icon.plus}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {visibleSchemas.length === 0 && (
+              <p className="text-xs text-slate-400 text-center py-6">没有匹配「{query}」的组件</p>
+            )}
+          </div>
         </div>
       </div>
 

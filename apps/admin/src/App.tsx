@@ -22,11 +22,12 @@ export default function App() {
         <Route path="/leads/:id" element={<LeadDetail />} />
         <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/pages" element={<Pages />} />
-        <Route path="/pages/:id/blocks" element={<BlockEditor />} />
         <Route path="/media" element={<Media />} />
         <Route path="/theme" element={<Theme />} />
         <Route path="/mail" element={<Mail />} />
       </Route>
+      {/* 编辑器独立二级全屏页（无主菜单） */}
+      <Route path="/pages/:id/blocks" element={<BlockEditor />} />
     </Routes>
   );
 }
