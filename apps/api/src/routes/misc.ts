@@ -5,6 +5,7 @@ import { leads } from '@cf-admin/db';
 import { authMiddleware } from '../lib/auth';
 import { audit } from '../lib/audit';
 import { fireWebhooks } from '../lib/outbound-webhook';
+import { THEME_PRESETS } from '../pages/theme';
 import type { Env, Variables } from '../env';
 
 export const miscRoutes = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -70,7 +71,10 @@ miscRoutes.get('/theme', async (c) => {
   const raw = await c.env.KV.get('theme:current');
   let theme: Record<string, string> = {};
   if (raw) { try { theme = JSON.parse(raw); } catch { /* ignore */ } }
-  return c.json({ theme, presets: ['default', 'dark', 'orange'] });
+  return c.json({
+    theme,
+    presets: Object.entries(THEME_PRESETS).map(([key, { name, vars }]) => ({ key, name, vars })),
+  });
 });
 
 miscRoutes.put('/theme', async (c) => {

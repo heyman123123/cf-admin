@@ -37,6 +37,7 @@ async function buildHtml(c: any, slug: string): Promise<{ html: string; status: 
 
   const body = blocks.map((b) => renderToString(<BlockRenderer block={b} />)).join('');
 
+  // 读取主题（KV），注入 CSS 变量
   let themeVars: Record<string, string> | null = null;
   try {
     const raw = await c.env.KV.get('theme:current');
@@ -54,7 +55,7 @@ async function buildHtml(c: any, slug: string): Promise<{ html: string; status: 
 <meta property="og:description" content="${escapeHtml(page.metaDescription ?? '')}" />
 <meta property="og:type" content="website" />
 <link rel="sitemap" href="/sitemap.xml" />
-<style>:root{${buildThemeCss(themeVars)}}${GLOBAL_CSS}</style>
+<style>${GLOBAL_CSS}:root{${buildThemeCss(themeVars)}}</style>
 </head>
 <body>${body}</body>
 </html>`;

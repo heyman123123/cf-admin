@@ -1,7 +1,6 @@
 /**
  * 全局样式（商业化版本）
  * 设计原则：CSS 变量 + 层次化阴影 + 渐变 + 精细排版，全站响应式。
- * v3：新增 variant 变体样式（hero 多背景 / features 序号卡 / pricing 多档 / stats 分割线等）。
  */
 export const GLOBAL_CSS = `
 :root {
@@ -378,26 +377,93 @@ a:hover { text-decoration: none; }
 }
 `;
 
-export const THEME_PRESETS: Record<string, Record<string, string>> = {
+/**
+ * 潘通（Pantone）色卡主题预设 + 经典内置方案。
+ * 每套预设覆盖全站 CSS 变量：主色 / 主色悬停 / 强调色 / 背景 / 浅背景 / 正文 / 次要文字 / 边框 / 圆角。
+ * 与 admin 端 `apps/admin/src/lib/theme.ts` 保持一致（两端同步维护）。
+ */
+export const THEME_PRESETS: Record<string, { name: string; vars: Record<string, string> }> = {
+  /* ---------- 内置经典方案（兼容早期数据） ---------- */
   'default': {
-    '--c-primary': '#2563eb',
-    '--c-primary-hover': '#1d4ed8',
-    '--c-accent': '#7c3aed',
+    name: '科技蓝',
+    vars: { '--c-primary': '#2563eb', '--c-primary-hover': '#1d4ed8', '--c-accent': '#7c3aed', '--c-bg': '#ffffff', '--c-bg-soft': '#f8fafc', '--c-text': '#0f172a', '--c-text-muted': '#64748b', '--c-border': '#e2e8f0', '--c-radius': '16px' },
   },
   'dark': {
-    '--c-primary': '#22d3ee',
-    '--c-primary-hover': '#06b6d4',
-    '--c-accent': '#f472b6',
+    name: '冷青',
+    vars: { '--c-primary': '#22d3ee', '--c-primary-hover': '#06b6d4', '--c-accent': '#f472b6', '--c-bg': '#ffffff', '--c-bg-soft': '#f8fafc', '--c-text': '#0f172a', '--c-text-muted': '#64748b', '--c-border': '#e2e8f0', '--c-radius': '16px' },
   },
   'orange': {
-    '--c-primary': '#f97316',
-    '--c-primary-hover': '#ea580c',
-    '--c-accent': '#f59e0b',
+    name: '活力橙',
+    vars: { '--c-primary': '#f97316', '--c-primary-hover': '#ea580c', '--c-accent': '#f59e0b', '--c-bg': '#ffffff', '--c-bg-soft': '#f8fafc', '--c-text': '#0f172a', '--c-text-muted': '#64748b', '--c-border': '#e2e8f0', '--c-radius': '16px' },
+  },
+
+  /* ---------- 潘通年度色（Pantone Color of the Year） ---------- */
+  'classic_blue': {
+    name: '经典蓝 2020',
+    vars: { '--c-primary': '#0f4c81', '--c-primary-hover': '#0b3d68', '--c-accent': '#5c88b5', '--c-bg': '#ffffff', '--c-bg-soft': '#f3f7fb', '--c-text': '#0e2a47', '--c-text-muted': '#5a728a', '--c-border': '#d8e2ee', '--c-radius': '16px' },
+  },
+  'ultimate_gray': {
+    name: '极致灰×亮黄 2021',
+    vars: { '--c-primary': '#e9d94c', '--c-primary-hover': '#d6c636', '--c-accent': '#8f9296', '--c-bg': '#ffffff', '--c-bg-soft': '#f5f5f2', '--c-text': '#24282b', '--c-text-muted': '#66696d', '--c-border': '#e0e0dc', '--c-radius': '14px' },
+  },
+  'very_peri': {
+    name: '长春花蓝 2022',
+    vars: { '--c-primary': '#6667ab', '--c-primary-hover': '#545598', '--c-accent': '#9b8ec9', '--c-bg': '#ffffff', '--c-bg-soft': '#f5f5fb', '--c-text': '#23244e', '--c-text-muted': '#5f6091', '--c-border': '#dddcf0', '--c-radius': '18px' },
+  },
+  'viva_magenta': {
+    name: '洋红万岁 2023',
+    vars: { '--c-primary': '#bb2649', '--c-primary-hover': '#a01e3d', '--c-accent': '#e27a8f', '--c-bg': '#ffffff', '--c-bg-soft': '#fdf4f6', '--c-text': '#3d0f1d', '--c-text-muted': '#7d4a58', '--c-border': '#f0d5db', '--c-radius': '14px' },
+  },
+  'peach_fuzz': {
+    name: '柔和桃 2024',
+    vars: { '--c-primary': '#e8846a', '--c-primary-hover': '#d96f54', '--c-accent': '#f4b896', '--c-bg': '#ffffff', '--c-bg-soft': '#fdf6f2', '--c-text': '#4a2b1f', '--c-text-muted': '#8c6553', '--c-border': '#f2ddd0', '--c-radius': '18px' },
+  },
+  'mocha_mousse': {
+    name: '摩卡慕斯 2025',
+    vars: { '--c-primary': '#a47864', '--c-primary-hover': '#8d654f', '--c-accent': '#c8a27e', '--c-bg': '#ffffff', '--c-bg-soft': '#f8f3ee', '--c-text': '#3c2b21', '--c-text-muted': '#7a6253', '--c-border': '#eadcd2', '--c-radius': '16px' },
+  },
+
+  /* ---------- 潘通经典色（Pantone 标志性色号） ---------- */
+  'greenery': {
+    name: '草木绿 15-0343',
+    vars: { '--c-primary': '#88b04b', '--c-primary-hover': '#75983d', '--c-accent': '#2e6b4f', '--c-bg': '#ffffff', '--c-bg-soft': '#f6f9ef', '--c-text': '#223a1c', '--c-text-muted': '#5f7a52', '--c-border': '#dde8cc', '--c-radius': '16px' },
+  },
+  'living_coral': {
+    name: '珊瑚橘 16-1546',
+    vars: { '--c-primary': '#ff6f61', '--c-primary-hover': '#e85c4f', '--c-accent': '#ffb199', '--c-bg': '#ffffff', '--c-bg-soft': '#fff5f2', '--c-text': '#4a2018', '--c-text-muted': '#8c5a4e', '--c-border': '#f5dbd3', '--c-radius': '14px' },
+  },
+  'ultra_violet': {
+    name: '紫外光 18-3838',
+    vars: { '--c-primary': '#5f259f', '--c-primary-hover': '#4e1d82', '--c-accent': '#9b6dc4', '--c-bg': '#ffffff', '--c-bg-soft': '#f8f4fc', '--c-text': '#2a1147', '--c-text-muted': '#6c5489', '--c-border': '#e6dcf2', '--c-radius': '18px' },
+  },
+  'serenity_rose': {
+    name: '静谧蓝×玫瑰石英 2016',
+    vars: { '--c-primary': '#91a8d0', '--c-primary-hover': '#7b94c0', '--c-accent': '#f7cac9', '--c-bg': '#ffffff', '--c-bg-soft': '#f5f7fb', '--c-text': '#313b55', '--c-text-muted': '#6b7695', '--c-border': '#dde3f0', '--c-radius': '18px' },
+  },
+  'aurora_gold': {
+    name: '极光金',
+    vars: { '--c-primary': '#b8860b', '--c-primary-hover': '#a0750a', '--c-accent': '#4b5e91', '--c-bg': '#ffffff', '--c-bg-soft': '#faf8f2', '--c-text': '#3a2e10', '--c-text-muted': '#7d6f4a', '--c-border': '#ece3c8', '--c-radius': '16px' },
   },
 };
 
+export const THEME_PRESETS_LEGACY = Object.fromEntries(
+  Object.entries(THEME_PRESETS).map(([k, v]) => [k, v.vars]),
+);
+
+export const THEME_VAR_LABELS: Record<string, string> = {
+  '--c-primary': '主色',
+  '--c-primary-hover': '主色悬停',
+  '--c-accent': '强调色',
+  '--c-bg': '页面背景',
+  '--c-bg-soft': '浅色背景',
+  '--c-text': '正文文字',
+  '--c-text-muted': '次要文字',
+  '--c-border': '边框色',
+  '--c-radius': '圆角半径',
+};
+
 export function buildThemeCss(theme?: Record<string, string> | null): string {
-  const vars = { ...THEME_PRESETS.default, ...(theme ?? {}) };
+  const vars = { ...THEME_PRESETS['default'].vars, ...(theme ?? {}) };
   return Object.entries(vars)
     .map(([k, v]) => `${k}: ${v};`)
     .join('\n');
