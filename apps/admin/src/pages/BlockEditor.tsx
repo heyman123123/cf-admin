@@ -3,7 +3,7 @@
  * 布局：深色顶栏(设备/撤销重做/存草稿/发布) + 左 Layers(拖拽/显隐/复制/删除/添加)
  *       + 中画布(点选即配 iframe，选中描边) + 右设置面板(变体/间距/SchemaForm 分组)
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, type BlockItem } from '../lib/api';
 import { BLOCK_SCHEMAS, BLOCK_GROUPS, SCHEMA_MAP, migrateContent, getVariants, defaultVariant } from '../lib/blocks';
@@ -160,6 +160,40 @@ const PREVIEW_CSS = `
 .cf-selected::after{content:'选中 · 在右侧编辑';position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:#2563eb;color:#fff;font-size:11px;font-weight:600;letter-spacing:.02em;padding:4px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 12px rgba(37,99,235,.35);z-index:10}
 `;
 
+/* ================= 样式与主题（tab 面板 · 与 API THEME_PRESETS 对齐） ================= */
+
+const THEME_VAR_LABELS: Record<string, string> = {
+  '--c-primary': '主色',
+  '--c-primary-hover': '主色悬停',
+  '--c-accent': '强调色',
+  '--c-bg': '页面背景',
+  '--c-bg-soft': '浅色背景',
+  '--c-text': '正文文字',
+  '--c-text-muted': '次要文字',
+  '--c-border': '边框色',
+  '--c-radius': '圆角半径',
+};
+
+const DEFAULT_THEME_VARS: Record<string, string> = {
+  '--c-primary': '#2563eb',
+  '--c-primary-hover': '#1d4ed8',
+  '--c-accent': '#7c3aed',
+  '--c-bg': '#ffffff',
+  '--c-bg-soft': '#f8fafc',
+  '--c-text': '#0f172a',
+  '--c-text-muted': '#64748b',
+  '--c-border': '#e2e8f0',
+  '--c-radius': '16px',
+};
+
+/** 主题变量 → CSS :root 覆盖行（追加在 PREVIEW_CSS 之后即生效） */
+function themeCssLine(theme: Record<string, string>): string {
+  const vars = { ...DEFAULT_THEME_VARS, ...theme };
+  return Object.entries(vars)
+    .map(([k, v]) => `${k}: ${v};`)
+    .join('');
+}
+
 /* ================= 撤销/重做钩子 ================= */
 
 function useHistory<T>(initial: T) {
@@ -235,7 +269,11 @@ export default function BlockEditor() {
   const [dragOver, setDragOver] = useState<number | null>(null);
   const [layersOpen, setLayersOpen] = useState(true);
   const [query, setQuery] = useState('');
-  const [pop, setPop] = useState<{ i: number; pos: 'above' | 'below' } | null>(null);
+  const [tab, setTab] = useState<'blocks' | 'theme'>('blocks');
+  const [pop, setPop] = useState<{ i: number; pos: 'above' | 'below'; x: number; y: number } | null>(null);
+  const [theme, setTheme] = useState<Record<string, string>>({});
+  const [themePresets, setThemePresets] = useState<{ key: string; name: string; vars: Record<string, string> }[]>([]);
+  const [themeSaved, setThemeSaved] = useState(false);
 
   useEffect(() => {
     api.listBlocks(id!).then((rows: BlockItem[]) => {
@@ -247,6 +285,29 @@ export default function BlockEditor() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // 加载主题（编辑器内「样式和主题」tab 使用）
+  useEffect(() => {
+    api.getTheme().then((r) => {
+      setTheme(r.theme);
+      setThemePresets(r.presets);
+    }).catch(() => undefined);
+  }, []);
+
+  const applyPreset = (vars: Record<string, string>) => {
+    setTheme(vars);
+    setThemeSaved(false);
+  };
+
+  const saveTheme = async () => {
+    try {
+      await api.saveTheme(theme);
+      setThemeSaved(true);
+      setTimeout(() => setThemeSaved(false), 2000);
+    } catch (e) {
+      alert(String(e));
+    }
+  };
 
   // 点选即配：iframe 内点击区块 → postMessage → 选中
   useEffect(() => {
@@ -276,6 +337,15 @@ export default function BlockEditor() {
 
   const update = (i: number, patch: Partial<Draft>) => {
     setBlocks((bs) => bs.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
+  };
+
+  /** 打开组件库浮层：锚定左栏右边缘，垂直对齐触发按钮所在行 */
+  const openPop = (e: ReactMouseEvent<HTMLButtonElement>, i: number, pos: 'above' | 'below') => {
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    const leftEdge = document.querySelector<HTMLElement>('.w-80')?.getBoundingClientRect().right;
+    const x = (leftEdge ?? r.right) + 10;
+    setPop({ i, pos, x, y: Math.max(8, r.top - 12) });
   };
 
   const move = (i: number, dir: -1 | 1) => {
@@ -372,8 +442,8 @@ export default function BlockEditor() {
     const body = blocks
       .map((b, i) => (hidden.has(i) ? '' : `<div class="cf-block${i === selected ? ' cf-selected' : ''}" data-ix="${i}" onclick="event.stopPropagation();parent.postMessage({type:'cf-block-click',ix:${i}},'*')">${renderBlockPreview(b)}</div>`))
       .join('');
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${PREVIEW_CSS}</style></head><body style="margin:0">${body || '<div style="padding:80px;text-align:center;color:#94a3b8">空页面 · 从左侧添加区块</div>'}</body></html>`;
-  }, [blocks, hidden, selected]);
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${PREVIEW_CSS}:root{${themeCssLine(theme)}}</style></head><body style="margin:0">${body || '<div style="padding:80px;text-align:center;color:#94a3b8">空页面 · 从左侧添加区块</div>'}</body></html>`;
+  }, [blocks, hidden, selected, theme]);
 
   const cur = blocks[selected];
   const variants = cur ? getVariants(cur.block_type) : [];
@@ -388,8 +458,30 @@ export default function BlockEditor() {
 
   return (
     <div className="flex h-screen w-full bg-slate-100 overflow-hidden">
-      {/* ======== 左：页面区块 Layers（hover 上/下添加 → Popover 组件库） ======== */}
+      {/* ======== 左：页面区块 / 样式和主题（tab 切换） ======== */}
       <div className="w-80 border-r border-slate-200 bg-white flex flex-col min-w-0">
+        {/* Tab 栏 */}
+        <div className="flex border-b border-slate-200 bg-slate-50/80 px-2 pt-2 gap-1">
+          <button
+            onClick={() => setTab('blocks')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-[12.5px] font-semibold transition border border-b-0 ${tab === 'blocks' ? 'bg-white text-blue-700 border-slate-200 shadow-[0_-2px_6px_rgba(15,23,42,.04)]' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100'}`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            页面区块
+            {tab === 'blocks' && blocks.length > 0 && <span className="text-[10px] font-bold text-blue-500 bg-blue-50 rounded-full px-1.5 py-px">{blocks.length}</span>}
+          </button>
+          <button
+            onClick={() => setTab('theme')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-[12.5px] font-semibold transition border border-b-0 ${tab === 'theme' ? 'bg-white text-blue-700 border-slate-200 shadow-[0_-2px_6px_rgba(15,23,42,.04)]' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-100'}`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.52-.67 1.67-1.33.17-.66-.08-1.17-.5-1.5-.4-.33-.83-1-.83-1.67a2 2 0 0 1 2-2h3.5c2.9 0 5.16-2.9 3.66-5.9C20.6 7.27 16.6 6 13.5 6c-.5 0-1.5-.5-1.5-1.5S13 2 12 2Z"/></svg>
+            样式和主题
+          </button>
+        </div>
+
+        {/* ---------- Tab：页面区块 ---------- */}
+        {tab === 'blocks' && (
+          <>
         <div className="px-4 py-3 border-b border-slate-200 bg-white">
           <button type="button" onClick={() => setLayersOpen((o) => !o)} className="w-full flex items-center justify-between group">
             <span className="flex items-center gap-2 text-[13px] font-bold text-slate-800 tracking-tight">
@@ -401,50 +493,6 @@ export default function BlockEditor() {
           </button>
           <p className="text-[11px] text-slate-400 mt-1">拖拽排序 · 点击选中 · hover 添加上/下区块</p>
         </div>
-
-        {/* 组件库 Popover（内联展开） */}
-        {pop && (
-          <div className="relative z-30 border-b border-slate-200 bg-white p-2.5 shadow-[0_8px_24px_rgba(15,23,42,.12)]">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-bold text-slate-700">
-                在{pop.pos === 'above' ? '上方' : '下方'}添加组件
-                {pop.i >= blocks.length ? ' · 追加到末尾' : ''}
-              </span>
-              <button onClick={() => { setPop(null); setQuery(''); }} title="关闭"
-                className="w-5 h-5 inline-flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">✕</button>
-            </div>
-            <div className="relative mb-1.5">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索组件…"
-                className="w-full border border-slate-200 rounded-lg bg-slate-50 px-3 py-1.5 pr-8 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-              />
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            </div>
-            <div className="max-h-64 overflow-auto grid grid-cols-2 gap-1.5">
-              {groupsWithSchemas.map(({ g, list }) => (
-                <div key={g} className="contents">
-                  {list.map((s) => {
-                    const m = metaOf(s.type);
-                    return (
-                      <button key={s.type} onClick={() => addBlockAt(s.type, pop)}
-                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm hover:-translate-y-px transition-all text-left col-span-2">
-                        <span className={`w-5 h-5 rounded bg-gradient-to-br ${m.tint} flex items-center justify-center text-[10px] shrink-0`}>{m.icon}</span>
-                        <span className="flex-1 truncate text-[11px] font-medium text-slate-600 hover:text-blue-700">{s.label}</span>
-                        <span className="text-blue-400 shrink-0">{Icon.plus}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-              {visibleSchemas.length === 0 && (
-                <p className="text-xs text-slate-400 text-center py-4 col-span-2">没有匹配「{query}」的组件</p>
-              )}
-            </div>
-          </div>
-        )}
 
         {layersOpen && (
           <div className="flex-1 overflow-auto p-2.5 space-y-2 min-h-0">
@@ -459,7 +507,7 @@ export default function BlockEditor() {
                   <div className="relative h-0 z-20 -mb-0.5">
                     <button
                       title="在上方添加区块"
-                      onClick={(e) => { e.stopPropagation(); setPop({ i, pos: 'above' }); }}
+                      onClick={(e) => openPop(e, i, 'above')}
                       className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-blue-600 text-white shadow-md shadow-blue-600/30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center"
                       style={{ opacity: undefined }}
                       onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
@@ -490,7 +538,7 @@ export default function BlockEditor() {
                     {/* 下方添加（hover 浮现） */}
                     <button
                       title="在下方添加区块"
-                      onClick={(e) => { e.stopPropagation(); setPop({ i, pos: 'below' }); }}
+                      onClick={(e) => openPop(e, i, 'below')}
                       className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-blue-600 text-white shadow-md shadow-blue-600/30 opacity-0 group-hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center"
                       onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; }}
@@ -504,7 +552,7 @@ export default function BlockEditor() {
             {blocks.length > 0 && (
               <div className="pt-2 border-t border-dashed border-slate-200">
                 <button
-                  onClick={() => setPop({ i: blocks.length, pos: 'below' })}
+                  onClick={(e) => openPop(e, blocks.length, 'below')}
                   className="w-full py-2 rounded-lg border border-dashed border-slate-300 text-[12px] font-medium text-slate-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition flex items-center justify-center gap-1.5"
                 ><span className="text-blue-500">{Icon.plus}</span>末尾添加区块</button>
               </div>
@@ -514,12 +562,77 @@ export default function BlockEditor() {
               <div className="text-center py-10 px-4">
                 <div className="text-2xl mb-1">🧩</div>
                 <p className="text-xs text-slate-400 mb-3">页面还没有区块</p>
-                <button onClick={() => setPop({ i: 0, pos: 'below' })}
+                <button onClick={(e) => openPop(e, 0, 'below')}
                   className="px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-600/25 transition">
                   添加第一个区块
                 </button>
               </div>
             )}
+          </div>
+        )}
+          </>
+        )}
+
+        {/* ---------- Tab：样式和主题 ---------- */}
+        {tab === 'theme' && (
+          <div className="flex-1 overflow-auto p-3.5 min-h-0 space-y-5">
+            {/* 保存栏 */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-[13px] font-bold text-slate-800 tracking-tight">样式和主题</h3>
+              <button onClick={saveTheme}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition ${themeSaved ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'text-white bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-md shadow-blue-600/20'}`}>
+                {themeSaved ? '已保存 ✓' : '保存主题'}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">主题为全局设置：保存后所有页面立即生效（旧缓存自动失效），画布实时预览。</p>
+
+            {/* 潘通色卡预设 */}
+            <div>
+              <span className="text-xs font-semibold text-slate-700 block mb-2">潘通色卡预设</span>
+              <div className="grid grid-cols-2 gap-2">
+                {themePresets.map((p) => {
+                  const active = Object.keys(p.vars).every((k) => theme[k] === p.vars[k]) && Object.keys(p.vars).length > 0;
+                  return (
+                    <button key={p.key} onClick={() => applyPreset(p.vars)}
+                      className={`group text-left rounded-xl border p-2 transition-all ${active ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm'}`}>
+                      <span className="block h-8 rounded-lg mb-1.5 relative overflow-hidden"
+                        style={{ background: `linear-gradient(120deg, ${p.vars['--c-primary'] ?? '#2563eb'}, ${p.vars['--c-accent'] ?? '#7c3aed'})` }}>
+                        {active && <span className="absolute inset-0 flex items-center justify-center text-white bg-black/15">{Icon.check}</span>}
+                      </span>
+                      <span className="block text-[11px] font-semibold text-slate-700 truncate">{p.name}</span>
+                      <span className="block text-[10px] text-slate-400 truncate mt-0.5">
+                        {p.vars['--c-primary'] ?? ''} · {p.vars['--c-accent'] ?? ''}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 自定义变量 */}
+            <div>
+              <span className="text-xs font-semibold text-slate-700 block mb-2">自定义变量</span>
+              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white">
+                {Object.entries(THEME_VAR_LABELS).map(([k, label]) => {
+                  const isColor = k.startsWith('--c-') && k !== '--c-radius';
+                  return (
+                    <div key={k} className="flex items-center gap-2.5 px-3 py-2.5">
+                      <span className="w-16 shrink-0 text-[11px] text-slate-500">{label}</span>
+                      {isColor && (
+                        <input type="color" value={theme[k] ?? DEFAULT_THEME_VARS[k] ?? '#000000'}
+                          onChange={(e) => setTheme((t) => ({ ...t, [k]: e.target.value }))}
+                          className="w-8 h-7 rounded border border-slate-200 bg-white cursor-pointer shrink-0 p-0.5" />
+                      )}
+                      <input
+                        value={theme[k] ?? DEFAULT_THEME_VARS[k] ?? ''}
+                        onChange={(e) => setTheme((t) => ({ ...t, [k]: e.target.value }))}
+                        className={`flex-1 min-w-0 border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition ${k === '--c-radius' ? '' : 'font-mono'}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -697,6 +810,56 @@ export default function BlockEditor() {
           />
         </div>
       </div>
+
+      {/* ======== 组件库 Popover（对应行右侧 fixed 浮层 + 遮罩） ======== */}
+      {pop && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => { setPop(null); setQuery(''); }} />
+          <div
+            className="fixed z-40 w-[300px] max-h-[72vh] overflow-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_16px_48px_rgba(15,23,42,.22)]"
+            style={{ left: Math.min(pop.x, window.innerWidth - 320), top: pop.y }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[12px] font-bold text-slate-700">
+                在{pop.pos === 'above' ? '上方' : '下方'}添加组件
+                {pop.i >= blocks.length ? ' · 追加到末尾' : ''}
+              </span>
+              <button onClick={() => { setPop(null); setQuery(''); }} title="关闭"
+                className="w-5 h-5 inline-flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">✕</button>
+            </div>
+            <div className="relative mb-2">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="搜索组件…"
+                className="w-full border border-slate-200 rounded-lg bg-slate-50 px-3 py-1.5 pr-8 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+              />
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {groupsWithSchemas.map(({ g, list }) => (
+                <div key={g} className="contents">
+                  {list.map((s) => {
+                    const m = metaOf(s.type);
+                    return (
+                      <button key={s.type} onClick={() => addBlockAt(s.type, pop)}
+                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm hover:-translate-y-px transition-all text-left col-span-2">
+                        <span className={`w-5 h-5 rounded bg-gradient-to-br ${m.tint} flex items-center justify-center text-[10px] shrink-0`}>{m.icon}</span>
+                        <span className="flex-1 truncate text-[11px] font-medium text-slate-600 hover:text-blue-700">{s.label}</span>
+                        <span className="text-blue-400 shrink-0">{Icon.plus}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+              {visibleSchemas.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4 col-span-2">没有匹配「{query}」的组件</p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
