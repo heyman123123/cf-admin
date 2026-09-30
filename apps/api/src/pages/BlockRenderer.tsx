@@ -39,6 +39,15 @@ interface BlockData {
   textColor?: string;
   radius?: number;
   maxWidth?: number;
+  // v3.5 布局组件
+  logo?: string;
+  logoImage?: string;
+  links?: { label: string; href: string }[];
+  sticky?: boolean;
+  description?: string;
+  columns?: { heading: string; links_text: string }[];
+  socials?: { icon: string; href: string }[];
+  bottomText?: string;
 }
 
 function parse(b: PageBlock): BlockData {
@@ -398,6 +407,75 @@ export function BlockRenderer({ block }: { block: PageBlock }) {
 
     case 'spacer':
       return <div class={`spacer${d.height === 'lg' ? ' spacer--lg' : d.height === 'sm' ? ' spacer--sm' : ''}`} />;
+
+    /* ============ Header 导航栏（v3.5 · 全局布局 · sticky） ============ */
+    case 'header_nav': {
+      const v = d.variant ?? 'split';
+      const links = (d.links ?? []).filter((l: any) => l && l.label);
+      const ctas = (Array.isArray(d.ctas) ? d.ctas : []).filter((c: any) => c && c.text);
+      const sticky = d.sticky !== false;
+      return (
+        <header class={`site-header site-header--${v}`} style={secStyle(d)}>
+          {!sticky && <style>{'.site-header{position:static;}'}</style>}
+          <div class="site-header-inner">
+            <a class="site-logo" href="/">{d.logoImage ? <img src={d.logoImage} alt={d.logo ?? ''} /> : (d.logo ?? 'LOGO')}</a>
+            {links.length > 0 && (
+              <nav class="site-nav">
+                {links.map((l: any, i: number) => <a href={l.href ?? '#'} key={i}>{l.label}</a>)}
+              </nav>
+            )}
+            {ctas.length > 0 && (
+              <div class="site-header-cta">
+                {ctas.map((c: any, i: number) => (
+                  <a class={i === 0 ? 'btn btn--primary' : 'btn site-cta--ghost'} href={c.href ?? '#'} key={i}>{c.text}</a>
+                ))}
+              </div>
+            )}
+          </div>
+        </header>
+      );
+    }
+    /* ============ Footer 页脚（v3.5 · 全局布局 · 多列） ============ */
+    case 'site_footer': {
+      const v = d.variant ?? 'multi';
+      const cols = (d.columns ?? []).filter((c: any) => c && c.heading);
+      const socials = (d.socials ?? []).filter((s: any) => s && s.href);
+      return (
+        <footer class={`site-footer site-footer--${v}`} style={secStyle(d)}>
+          <div class="site-footer-inner">
+            <div class="site-footer-grid">
+              <div class="site-footer-col">
+                {d.logo && <div class="site-footer-brand">{d.logo}</div>}
+                {d.description && <p class="site-footer-desc">{d.description}</p>}
+                {socials.length > 0 && (
+                  <div class="site-footer-social">
+                    {socials.map((s: any, i: number) => <a href={s.href ?? '#'} key={i}>{s.icon ?? '·'}</a>)}
+                  </div>
+                )}
+              </div>
+              {cols.map((c: any, i: number) => {
+                const ls = String(c.links_text ?? '').split('\n').map((x: string) => x.trim()).filter(Boolean)
+                  .map((x: string) => {
+                    const [label, href] = x.split('|').map((y: string) => y.trim());
+                    return { label: label || x, href: href || '#' };
+                  });
+                return (
+                  <div class="site-footer-col" key={i}>
+                    <h4>{c.heading}</h4>
+                    {ls.length > 0 && (
+                      <ul class="site-footer-links">
+                        {ls.map((l: any, j: number) => <li key={j}><a class="site-footer-link" href={l.href}>{l.label}</a></li>)}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {d.bottomText && <div class="site-footer-bottom">{d.bottomText}</div>}
+          </div>
+        </footer>
+      );
+    }
 
     case 'rich_text':
     default: {
