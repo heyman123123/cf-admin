@@ -3,6 +3,7 @@
  * v3.5：从 BlockEditor.tsx 拆出（「样式和主题」tab 见 ThemeTab.tsx）。
  * v3.6：左栏加宽（340px）+ Tab 紧凑化防溢出。
  * v3.7：全局布局 tab 内直接展示 Header/Footer 区块列表（不再跳转到「页面区块」tab）。
+ * v3.8：列表选中 → 画布滚动定位到组件（onSelectFromList）。
  */
 import { SCHEMA_MAP } from '../../lib/blocks';
 import { metaOf, type Draft } from '../../lib/blockPreview';
@@ -10,11 +11,13 @@ import { Icon } from '../../lib/editorParts';
 
 export type Tab = 'blocks' | 'layout' | 'theme';
 
-export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, shownBlocks, selected, setSelected, hidden, toggleHidden, duplicate, remove, reorder, dragFrom, setDragFrom, dragOver, setDragOver, openPop, isLayout, layoutPart, layoutBlocks, switchTarget, showHeader, showFooter, savePageFlags }: {
+export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, shownBlocks, selected, setSelected, onSelectFromList, hidden, toggleHidden, duplicate, remove, reorder, dragFrom, setDragFrom, dragOver, setDragOver, openPop, isLayout, layoutPart, layoutBlocks, switchTarget, showHeader, showFooter, savePageFlags }: {
   tab: Tab; setTab: (t: Tab) => void;
   layersOpen: boolean; setLayersOpen: React.Dispatch<React.SetStateAction<boolean>>;
   shownBlocks: Draft[];
   selected: number; setSelected: (n: number) => void;
+  /** v3.8：从列表选中时同时让画布滚动定位到组件 */
+  onSelectFromList: (i: number) => void;
   hidden: Set<number>; toggleHidden: (i: number) => void;
   duplicate: (i: number) => void; remove: (i: number) => void;
   reorder: (from: number, to: number) => void;
@@ -59,7 +62,7 @@ export default function LeftPanel({ tab, setTab, layersOpen, setLayersOpen, show
               onDragLeave={() => setDragOver((v) => (v === i ? null : v))}
               onDrop={() => { if (dragFrom !== null) reorder(dragFrom, i); setDragFrom(null); setDragOver(null); }}
               onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
-              onClick={() => setSelected(i)}
+              onClick={() => onSelectFromList(i)}
               className={`group relative flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] cursor-pointer border transition-all duration-150 ${isDragOver ? 'border-blue-400 bg-blue-50 shadow-inner' : active ? 'border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'} ${isHidden ? 'opacity-45' : ''}`}
             >
               <span className={`shrink-0 cursor-grab opacity-40 group-hover:opacity-100 ${active ? 'text-white' : 'text-slate-400'}`} title="拖拽排序">{Icon.grip}</span>

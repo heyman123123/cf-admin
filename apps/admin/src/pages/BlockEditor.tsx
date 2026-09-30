@@ -1,9 +1,8 @@
 /**
- * Block 可视化编辑器（v3.6 · Shopify Theme Editor 范式 · 商业化 UI）
+ * Block 可视化编辑器（v3.5 · Shopify Theme Editor 范式 · 商业化 UI）
  * 布局：全局顶栏（编辑器级，跨三栏）+ 左 Layers/全局布局/主题 + 中画布（点选即配） + 右设置面板。
- * v3.5 特性：画布点击选中不跳顶、样式分组、全局 Header/Footer、版本历史、组件库缩略图。
- * v3.6：页面画布渲染全局 Header/Footer（可点击切到布局编辑）；组件库按编辑模式过滤；左栏加宽。
- * v3.7：显隐勾选即时生效（本地 state 同步，失败回滚）。
+ * v3.5 特性：画布点击选中不跳顶（消息驱动描边 + 滚动保持）、样式分组配置、
+ *           全局 Header/Footer 可视化编辑、页面级显隐、版本历史（草稿/线上）、组件库 hover 缩略图。
  */
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -49,6 +48,9 @@ export default function BlockEditor() {
   const [versionOpen, setVersionOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const scrollTopRef = useRef(0);
+  // v3.8：主题 CSS 变量最新值（画布重建时内联，避免重建依赖 theme）+ 列表选中滚动标记
+  const themeRef = useRef(theme);
+  const scrollToRef = useRef(false);
   const isLayout = layoutPart !== null;
   const shownBlocks = isLayout ? layoutBlocks[layoutPart!] : blocks;
 
@@ -119,6 +121,12 @@ export default function BlockEditor() {
     }
   };
 
+  // v3.8：主题变化 → 仅通过消息更新 iframe CSS 变量（不重建画布，消除改色闪烁）
+  useEffect(() => {
+    themeRef.current = theme;
+    iframeRef.current?.contentWindow?.postMessage({ type: 'cf-theme', vars: theme }, '*');
+  }, [theme]);
+
   // 点选即配：iframe 内点击区块 → postMessage → 选中（消息切换描边，不重建 iframe）
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
@@ -136,9 +144,16 @@ export default function BlockEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // v3.8：从左侧列表选中 → 画布滚动定位到该组件；画布内点击保持不跳顶
+  const selectFromList = (i: number) => {
+    scrollToRef.current = true;
+    setSelected(i);
+  };
+
   // 选中变化 → 向 iframe 发消息切换描边（不重建 srcDoc，避免跳顶）
   useEffect(() => {
-    iframeRef.current?.contentWindow?.postMessage({ type: 'cf-select', ix: selected }, '*');
+    iframeRef.current?.contentWindow?.postMessage({ type: 'cf-select', ix: selected, scroll: scrollToRef.current }, '*');
+    scrollToRef.current = false;
   }, [selected, isLayout, shownBlocks]);
 
   // Ctrl+Z / Ctrl+Shift+Z 快捷键
@@ -325,26 +340,35 @@ export default function BlockEditor() {
     const layoutOf = (bs: Draft[], part: 'header' | 'footer') => bs
       .map((b, i) => `<div class="cf-block cf-global" data-tag="全局 · ${part === 'header' ? '页头' : '页脚'}" onclick="event.stopPropagation();parent.postMessage({type:'cf-layout-click',part:'${part}'},'*')">${renderBlockPreview(b)}</div>`)
       .join('');
-    const headerHtml = isLayout ? '' : layoutOf(layoutBlocks.header, 'header');
-    const footerHtml = isLayout ? '' : layoutOf(layoutBlocks.footer, 'footer');
+    // v3.8：画布尊重页面级显隐开关（与线上一致）
+    const headerHtml = isLayout ? '' : (showHeader === 1 ? layoutOf(layoutBlocks.header, 'header') : '');
+    const footerHtml = isLayout ? '' : (showFooter === 1 ? layoutOf(layoutBlocks.footer, 'footer') : '');
     const body = headerHtml
       + list
         .map((b, i) => (hidden.has(i) ? '' : `<div class="cf-block" data-ix="${i}" onclick="event.stopPropagation();parent.postMessage({type:'cf-block-click',ix:${i}},'*')">${renderBlockPreview(b)}</div>`))
         .join('')
       + footerHtml;
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${PREVIEW_CSS}:root{${themeCssLine(theme)}}</style></head><body style="margin:0">${body || `<div style="padding:80px;text-align:center;color:#94a3b8">${emptyText}</div>`}<script>
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${PREVIEW_CSS}:root{${themeCssLine(themeRef.current)}}</style></head><body style="margin:0">${body || `<div style="padding:80px;text-align:center;color:#94a3b8">${emptyText}</div>`}<script>
 window.addEventListener('message',function(e){
   if(e.data&&e.data.type==='cf-select'){
     document.querySelectorAll('.cf-selected').forEach(function(el){el.classList.remove('cf-selected');});
     var el=document.querySelector('[data-ix="'+e.data.ix+'"]');
-    if(el)el.classList.add('cf-selected');
+    if(el){el.classList.add('cf-selected'); if(e.data.scroll) el.scrollIntoView({behavior:'smooth',block:'center'});}
   }
 });
+if(window.addEventListener){
+  window.addEventListener('message',function(e){
+    if(e.data&&e.data.type==='cf-theme'&&e.data.vars){
+      var root=document.documentElement;
+      for(var k in e.data.vars){ if(Object.prototype.hasOwnProperty.call(e.data.vars,k)) root.style.setProperty(k,e.data.vars[k]); }
+    }
+  });
+}
 document.addEventListener('scroll',function(){parent.postMessage({type:'cf-scroll',top:(document.documentElement.scrollTop||document.body.scrollTop)},'*');},{passive:true});
 window.scrollTo(0,${scrollTopRef.current});
 </script></body></html>`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shownBlocks, hidden, theme, isLayout, layoutPart, layoutBlocks]);
+  }, [shownBlocks, hidden, isLayout, layoutPart, layoutBlocks, showHeader, showFooter]);
 
   const cur = shownBlocks[selected];
   const variants = cur ? getVariants(cur.block_type) : [];
@@ -389,6 +413,7 @@ window.scrollTo(0,${scrollTopRef.current});
           shownBlocks={shownBlocks}
           selected={selected}
           setSelected={setSelected}
+          onSelectFromList={selectFromList}
           hidden={hidden}
           toggleHidden={toggleHidden}
           duplicate={duplicate}
