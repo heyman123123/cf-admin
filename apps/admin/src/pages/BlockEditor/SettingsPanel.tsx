@@ -1,6 +1,7 @@
 /**
  * 编辑器右栏：区块设置（组件类型 + 样式分组 + SchemaForm 内容）。
  * v3.5：从 BlockEditor.tsx 拆出。
+ * v4.0：深色容器 + 亮色表单卡片（Design Tokens）。
  */
 import { BLOCK_SCHEMAS, SCHEMA_MAP } from '../../lib/blocks';
 import type { Draft } from '../../lib/blockPreview';
@@ -20,45 +21,45 @@ export default function SettingsPanel({ cur, selected, count, move, duplicate, r
 }) {
   const schemaOf = (type: string) => SCHEMA_MAP[type] ?? BLOCK_SCHEMAS[0];
   return (
-    <div className="w-96 border-r border-slate-200 bg-white flex flex-col min-w-0 order-2">
-      <div className="px-4 py-3.5 border-b border-slate-200 flex justify-between items-center shrink-0">
-        <h3 className="text-[13px] font-bold text-slate-800 tracking-tight">区块设置</h3>
+    <div className="w-96 border-r border-[var(--border-dim)] bg-[var(--editor-bg)] flex flex-col min-w-0 order-2">
+      <div className="px-4 py-3.5 border-b border-[var(--border-dim)] bg-[var(--editor-bg)] flex justify-between items-center shrink-0">
+        <h3 className="text-[13px] font-bold text-[var(--text-hi)] tracking-tight">区块设置</h3>
         {cur && (
           <div className="flex gap-1">
             <button onClick={() => move(selected, -1)} disabled={selected === 0} title="上移"
-              className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-500 transition">{Icon.up}</button>
+              className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-[var(--border-dim)] text-[var(--text-mid)] hover:border-blue-500 hover:text-blue-400 disabled:opacity-30 disabled:hover:border-[var(--border-dim)] disabled:hover:text-[var(--text-mid)] transition">{Icon.up}</button>
             <button onClick={() => move(selected, 1)} disabled={selected === count - 1} title="下移"
-              className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-500 transition">{Icon.down}</button>
+              className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-[var(--border-dim)] text-[var(--text-mid)] hover:border-blue-500 hover:text-blue-400 disabled:opacity-30 disabled:hover:border-[var(--border-dim)] disabled:hover:text-[var(--text-mid)] transition">{Icon.down}</button>
             <button onClick={() => duplicate(selected)} disabled={!cur} title="复制"
-              className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-30 transition">{Icon.copy}</button>
+              className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-[var(--border-dim)] text-[var(--text-mid)] hover:border-blue-500 hover:text-blue-400 disabled:opacity-30 transition">{Icon.copy}</button>
             <button onClick={() => remove(selected)} disabled={!cur} title="删除"
-              className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:border-red-400 hover:text-red-600 disabled:opacity-30 transition">{Icon.trash}</button>
+              className="w-7 h-7 inline-flex items-center justify-center rounded-md border border-[var(--border-dim)] text-[var(--text-mid)] hover:border-red-400 hover:text-red-400 disabled:opacity-30 transition">{Icon.trash}</button>
           </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto p-3 space-y-3 dark-scroll">
         {cur ? (
           <>
             {/* 组件类型 */}
-            <div className="mb-3.5">
-              <span className="text-xs font-medium text-slate-600 block mb-1.5">组件类型</span>
+            <div>
+              <span className="text-xs font-medium text-[var(--text-mid)] block mb-1.5">组件类型</span>
               <div className="relative">
                 <select
                   value={cur.block_type}
                   onChange={(e) => changeType(selected, e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg bg-white px-2.5 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 appearance-none cursor-pointer"
+                  className="w-full dark-input px-2.5 py-2 text-sm appearance-none cursor-pointer"
                 >
                   {BLOCK_SCHEMAS.map((s) => <option key={s.type} value={s.type}>{s.label}</option>)}
                 </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">{Icon.down}</span>
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-lo)] pointer-events-none">{Icon.down}</span>
               </div>
             </div>
 
             {/* ===== 样式分组（v3.5：所有样式统一在此配置） ===== */}
-            <div className="mb-3.5">
-              <span className="text-xs font-medium text-slate-600 block mb-1.5">样式</span>
-              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white">
+            <div>
+              <span className="text-xs font-medium text-[var(--text-mid)] block mb-1.5">样式</span>
+              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white overflow-hidden">
                 {/* 视觉变体 */}
                 {variants.length > 0 && (
                   <div className="p-3">
@@ -181,7 +182,7 @@ export default function SettingsPanel({ cur, selected, count, move, duplicate, r
         ) : (
           <div className="text-center py-16">
             <div className="text-3xl mb-3">👆</div>
-            <p className="text-xs text-slate-400 leading-relaxed">点击左侧图层或画布中的区块<br />在这里配置它的内容与样式</p>
+            <p className="text-xs text-[var(--text-mid)] leading-relaxed">点击左侧图层或画布中的区块<br />在这里配置它的内容与样式</p>
           </div>
         )}
       </div>

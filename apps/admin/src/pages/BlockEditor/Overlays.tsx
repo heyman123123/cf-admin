@@ -1,7 +1,9 @@
 /**
  * 编辑器浮层：组件库 Popover（hover 缩略图）+ 版本历史弹层。
  * v3.5：从 BlockEditor.tsx 拆出。
+ * v4.0：组件库深色化 + 分组折叠 + 卡片化。
  */
+import { useState } from 'react';
 import { SCHEMA_MAP } from '../../lib/blocks';
 import { metaOf, type Draft } from '../../lib/blockPreview';
 import { Icon } from '../../lib/editorParts';
@@ -22,6 +24,15 @@ export default function Overlays({ pop, setPop, query, setQuery, groupsWithSchem
   restore: (vid: string) => void;
 }) {
   const schemaOf = (type: string) => SCHEMA_MAP[type] ?? SCHEMA_MAP.hero;
+  // v4.0：组件分组折叠状态（默认全部展开）
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const toggleGroup = (g: string) => {
+    setCollapsed((s) => {
+      const n = new Set(s);
+      if (n.has(g)) n.delete(g); else n.add(g);
+      return n;
+    });
+  };
 
   return (
     <>
@@ -30,46 +41,58 @@ export default function Overlays({ pop, setPop, query, setQuery, groupsWithSchem
         <>
           <div className="fixed inset-0 z-30" onClick={() => { setPop(null); setQuery(''); }} />
           <div
-            className="fixed z-40 w-[300px] max-h-[72vh] overflow-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_16px_48px_rgba(15,23,42,.22)]"
+            className="fixed z-40 w-[300px] max-h-[76vh] overflow-auto rounded-2xl border border-[var(--border-dim)] bg-[var(--editor-bg)] p-3 shadow-[0_16px_48px_rgba(0,0,0,.5)] dark-scroll"
             style={{ left: Math.min(pop.x, window.innerWidth - 320), top: pop.y }}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[12px] font-bold text-slate-700">
+              <span className="text-[12px] font-bold text-[var(--text-hi)]">
                 在{pop.pos === 'above' ? '上方' : '下方'}添加组件
                 {pop.i >= shownBlocks.length ? ' · 追加到末尾' : ''}
               </span>
               <button onClick={() => { setPop(null); setQuery(''); }} title="关闭"
-                className="w-5 h-5 inline-flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">✕</button>
+                className="w-5 h-5 inline-flex items-center justify-center rounded text-[var(--text-lo)] hover:text-[var(--text-hi)] hover:bg-[var(--surface)] transition">✕</button>
             </div>
             <div className="relative mb-2">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="搜索组件…"
-                className="w-full border border-slate-200 rounded-lg bg-slate-50 px-3 py-1.5 pr-8 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                className="w-full dark-input px-3 py-1.5 pr-8 text-[12px]"
               />
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-lo)] pointer-events-none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
+
+            {/* 分组折叠 + 组件卡片 */}
+            <div className="space-y-2">
               {groupsWithSchemas.map(({ g, list }) => (
-                <div key={g} className="contents">
-                  {list.map((s) => {
-                    const m = metaOf(s.type);
-                    return (
-                      <button key={s.type} onClick={() => addBlockAt(s.type, pop)}
-                        onMouseEnter={() => setHoverType(s.type)}
-                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm hover:-translate-y-px transition-all text-left col-span-2">
-                        <span className={`w-5 h-5 rounded bg-gradient-to-br ${m.tint} flex items-center justify-center text-[10px] shrink-0`}>{m.icon}</span>
-                        <span className="flex-1 truncate text-[11px] font-medium text-slate-600 hover:text-blue-700">{s.label}</span>
-                        <span className="text-blue-400 shrink-0">{Icon.plus}</span>
-                      </button>
-                    );
-                  })}
+                <div key={g} className="rounded-xl border border-[var(--border-dim)] overflow-hidden">
+                  <button onClick={() => toggleGroup(g)}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 bg-[var(--surface)] text-left">
+                    <span className="text-[10.5px] font-bold text-[var(--text-mid)] tracking-wide uppercase">{g}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      className={`text-[var(--text-lo)] transition-transform duration-150 ${collapsed.has(g) ? '' : 'rotate-180'}`}><path d="m6 9 6 6 6-6" /></svg>
+                  </button>
+                  {!collapsed.has(g) && (
+                    <div className="divide-y divide-[var(--border-dim)]">
+                      {list.map((s) => {
+                        const m = metaOf(s.type);
+                        return (
+                          <button key={s.type} onClick={() => addBlockAt(s.type, pop)}
+                            onMouseEnter={() => setHoverType(s.type)}
+                            className="w-full flex items-center gap-2 px-2.5 py-2 bg-[var(--panel-bg)] hover:bg-[var(--surface-hover)] transition-all text-left group/item">
+                            <span className={`w-7 h-7 rounded-md bg-gradient-to-br ${m.tint} flex items-center justify-center text-[12px] shrink-0 shadow-sm`}>{m.icon}</span>
+                            <span className="flex-1 truncate text-[11.5px] font-medium text-[var(--text-hi)] group-hover/item:text-white">{s.label}</span>
+                            <span className="text-blue-400 opacity-0 group-hover/item:opacity-100 shrink-0 transition">{Icon.plus}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
               {visibleSchemas.length === 0 && (
-                <p className="text-xs text-slate-400 text-center py-4 col-span-2">没有匹配「{query}」的组件</p>
+                <p className="text-xs text-[var(--text-mid)] text-center py-4">没有匹配「{query}」的组件</p>
               )}
             </div>
 
@@ -77,10 +100,10 @@ export default function Overlays({ pop, setPop, query, setQuery, groupsWithSchem
             {hoverType && (() => {
               const s = schemaOf(hoverType);
               return (
-                <div className="mt-2 rounded-xl border border-slate-200 bg-white overflow-hidden shrink-0">
-                  <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-100 text-[10px] font-semibold text-slate-500 flex justify-between items-center">
+                <div className="mt-2 rounded-xl border border-[var(--border-dim)] bg-[var(--panel-bg)] overflow-hidden shrink-0">
+                  <div className="px-2.5 py-1.5 bg-[var(--surface)] border-b border-[var(--border-dim)] text-[10px] font-semibold text-[var(--text-mid)] flex justify-between items-center">
                     <span className="truncate">{s.label} · 预览</span>
-                    <span className="text-slate-400 shrink-0">添加后可在右侧编辑</span>
+                    <span className="text-[var(--text-lo)] shrink-0">添加后可在右侧编辑</span>
                   </div>
                   <div className="relative" style={{ height: 130, overflow: 'hidden' }}>
                     <iframe
