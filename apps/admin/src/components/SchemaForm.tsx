@@ -6,14 +6,15 @@
 import React from 'react';
 import type { FieldDef, JsonObject } from '../lib/blocks';
 
-const inputCls = 'w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500';
-const labelCls = 'text-xs font-medium text-gray-500 block mb-1';
+const inputCls =
+  'w-full border border-gray-200 rounded-lg bg-white px-2.5 py-2 text-sm text-gray-800 placeholder:text-gray-400 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:shadow-none transition';
+const labelCls = 'text-xs font-medium text-gray-600 block mb-1.5';
 
 function FieldLabel({ children, desc }: { children: React.ReactNode; desc?: string }) {
   return (
     <>
       <span className={labelCls}>{children}</span>
-      {desc && <p className="text-[11px] text-gray-400 mt-0.5 mb-1">{desc}</p>}
+      {desc && <p className="text-[11px] text-gray-400 mt-0.5 mb-1.5 leading-relaxed">{desc}</p>}
     </>
   );
 }
@@ -42,23 +43,23 @@ function ArrayTable({ field, value, onChange }: {
     <div className="mb-4">
       <FieldLabel desc={(field as any).description}>{field.label}</FieldLabel>
       {rows.length === 0 ? (
-        <div className="text-xs text-gray-400 border border-dashed rounded p-3 text-center">暂无数据</div>
+        <div className="text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50/50">暂无数据</div>
       ) : (
-        <div className="border rounded overflow-x-auto">
+        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
           <table className="w-full text-xs">
             <thead className="bg-gray-50">
               <tr>
                 {field.fields.map((f) => (
-                  <th key={f.key} className="text-left px-2 py-2 font-medium text-gray-500 whitespace-nowrap">
+                  <th key={f.key} className="text-left px-2.5 py-2 font-semibold text-gray-500 whitespace-nowrap border-b border-gray-200">
                     {(f as any).label}
                   </th>
                 ))}
-                <th className="px-2 py-2 w-24 text-right">操作</th>
+                <th className="px-2 py-2 w-24 text-right border-b border-gray-200">操作</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} className="border-t align-top">
+                <tr key={i} className="border-t border-gray-100 first:border-t-0 hover:bg-blue-50/40 transition-colors">
                   {field.fields.map((f) => (
                     <td key={f.key} className="px-2 py-1.5">
                       <CellEditor field={f} value={row[f.key]} onChange={(v) => setRow(i, { [f.key]: v })} compact />
@@ -75,8 +76,9 @@ function ArrayTable({ field, value, onChange }: {
           </table>
         </div>
       )}
-      <button onClick={addRow} className="mt-1.5 text-xs text-blue-600 hover:text-blue-700">
-        {field.addLabel ?? '+ 添加'}
+      <button onClick={addRow} className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+        <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 inline-flex items-center justify-center text-[10px] leading-none">+</span>
+        {field.addLabel ?? '添加'}
       </button>
     </div>
   );
@@ -90,7 +92,9 @@ function CellEditor({ field, value, onChange, compact }: {
   onChange: (v: any) => void;
   compact?: boolean;
 }) {
-  const cls = compact ? 'w-full border rounded px-1.5 py-1 text-xs' : inputCls;
+  const cls = compact
+    ? 'w-full border border-gray-200 rounded-md px-1.5 py-1 text-xs bg-white shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100 transition'
+    : inputCls;
   switch (field.type) {
     case 'text':
       return <input className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={(field as any).placeholder} />;
@@ -133,12 +137,15 @@ function GroupPanel({ title, open, onToggle, children }: {
   title: string; open: boolean; onToggle: () => void; children: React.ReactNode;
 }) {
   return (
-    <div className="border rounded mb-2">
-      <button type="button" onClick={onToggle} className="w-full flex justify-between items-center px-3 py-2 bg-gray-50 rounded-t text-left">
-        <span className="text-xs font-bold text-gray-600">{title}</span>
-        <span className={`text-gray-400 transition-transform ${open ? '' : 'rotate-180'}`}>▾</span>
+    <div className={`border border-gray-200 rounded-xl overflow-hidden mb-2.5 bg-white shadow-sm ${open ? '' : ''}`}>
+      <button type="button" onClick={onToggle} className="w-full flex justify-between items-center px-3.5 py-2.5 bg-gray-50/80 hover:bg-gray-100 transition-colors text-left">
+        <span className="text-xs font-bold text-gray-700">{title}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
       </button>
-      {open && <div className="p-3">{children}</div>}
+      {open && <div className="p-3.5 border-t border-gray-100">{children}</div>}
     </div>
   );
 }
@@ -158,7 +165,7 @@ export function SchemaForm({ fields, value, onChange, grouped }: {
     switch (field.type) {
       case 'object':
         return (
-          <div key={field.key} className="border rounded p-3 bg-gray-50/60 mb-3">
+          <div key={field.key} className="border border-gray-200 rounded-xl p-3.5 bg-gray-50/70 mb-3">
             <FieldLabel desc={(field as any).description}>{field.label}</FieldLabel>
             <SchemaForm
               fields={field.fields}

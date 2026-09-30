@@ -55,6 +55,7 @@ adminRoutes.patch('/pages/:id', async (c) => {
   const [page] = await db.select().from(pages).where(eq(pages.id, id)).limit(1);
   if (!page) return c.json({ error: 'not found' }, 404);
 
+  // slug 冲突检测
   if (body.slug && body.slug !== page.slug) {
     const [dup] = await db.select().from(pages).where(eq(pages.slug, body.slug)).limit(1);
     if (dup) return c.json({ error: `slug 已被页面 ${dup.title} 占用` }, 409);
@@ -129,7 +130,10 @@ adminRoutes.put('/pages/:id/blocks', async (c) => {
   }
 
   const [page] = await db.select().from(pages).where(eq(pages.id, pageId)).limit(1);
-  if (page) await purgeUrl(new URL(page.slug, c.env.APP_URL).toString());
+  if (page) {
+    const base = c.env.APP_URL ?? new URL(c.req.url).origin;
+    await purgeUrl(new URL(page.slug, base).toString());
+  }
 
   return c.json({ success: true, count: blocks.length });
 });
